@@ -42,6 +42,16 @@ extends Control
 @onready var island_stats = $IslandInfoModal/Panel/VBox/StatsText
 @onready var island_close_btn = $IslandInfoModal/Panel/VBox/CloseBtn
 
+# Touch Numpad Modal (for tablets / mobile)
+@onready var numpad_modal = $NumpadModal
+@onready var numpad_title = $NumpadModal/Panel/VBox/Title
+@onready var numpad_display = $NumpadModal/Panel/VBox/DisplayLbl
+@onready var numpad_grid = $NumpadModal/Panel/VBox/Grid
+
+var numpad_target: LineEdit = null
+var numpad_value: String = ""
+var numpad_secret: bool = false
+
 # Title Screen Overlay
 @onready var title_overlay = $TitleOverlay
 @onready var title_resume_btn = $TitleOverlay/Panel/VBox/BtnRow/ResumeBtn
@@ -54,7 +64,9 @@ extends Control
 @onready var lobby_modal = $LobbyOverlay
 @onready var lobby_back_btn = $LobbyOverlay/Panel/VBox/BackBtn
 @onready var lobby_name_input = $LobbyOverlay/Panel/VBox/StudentSection/NameRow/NameInput
+@onready var lobby_name_web_btn = $LobbyOverlay/Panel/VBox/StudentSection/NameRow/WebNameBtn
 @onready var lobby_code_input = $LobbyOverlay/Panel/VBox/StudentSection/CodeRow/CodeInput
+@onready var lobby_code_pad_btn = $LobbyOverlay/Panel/VBox/StudentSection/CodeRow/CodePadBtn
 @onready var lobby_relay_row = $LobbyOverlay/Panel/VBox/RelayRow
 @onready var lobby_relay_input = $LobbyOverlay/Panel/VBox/RelayRow/RelayInput
 @onready var lobby_server_toggle = $LobbyOverlay/Panel/VBox/TeacherSection/ServerToggleBtn
@@ -158,8 +170,10 @@ func _ready():
 	news_banner.visible = false
 	victory_modal.visible = false
 	island_modal.visible = false
+	numpad_modal.visible = false
 	lobby_modal.visible = false
 	title_overlay.visible = true
+	_setup_numpad()
 	home_btn.pressed.connect(_on_return_to_title)
 	default_wood_panel = guide_strip.get_theme_stylebox("panel")
 	default_wood_bar = $TopBar.get_theme_stylebox("panel")
@@ -222,6 +236,18 @@ func _on_return_to_title():
 	title_overlay.visible = true
 
 func _setup_lobby():
+	lobby_code_pad_btn.pressed.connect(func():
+		SoundManager.play_click()
+		open_numpad(lobby_code_input, "방 코드 4자리 입력", false)
+	)
+	lobby_name_web_btn.visible = OS.has_feature("web")
+	lobby_name_web_btn.pressed.connect(func():
+		SoundManager.play_click()
+		if OS.has_feature("web"):
+			var res = JavaScriptBridge.eval("window.prompt('이름을 입력하세요:', '%s') || ''" % lobby_name_input.text.replace("'", ""))
+			if res is String and res.strip_edges() != "":
+				lobby_name_input.text = res.strip_edges()
+	)
 	lobby_relay_row.visible = false
 	lobby_server_toggle.pressed.connect(func():
 		SoundManager.play_click()
@@ -458,3 +484,44 @@ func _on_island_clicked(c_id: String):
 		c["automation_lvl"], c["logistics_lvl"], c["tech_rnd_lvl"]
 	]
 	island_modal.visible = true
+
+func _setup_numpad():
+	for child in numpad_grid.get_children():
+		child.queue_free()
+	var keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "지우기", "0", "확인"]
+	for k in keys:
+		var b = Button.new()
+		b.text = k
+		b.custom_minimum_size = Vector2(72, 46)
+		b.pressed.connect(func():
+			SoundManager.play_click()
+			if k == "지우기":
+				if numpad_value.length() > 0:
+					numpad_value = numpad_value.substr(0, numpad_value.length() - 1)
+			elif k == "확인":
+				if numpad_target != null:
+					numpad_target.text = numpad_value
+				numpad_modal.visible = false
+				return
+			else:
+				if numpad_value.length() < 8:
+					numpad_value += k
+			_refresh_numpad_display()
+		)
+		numpad_grid.add_child(b)
+
+func open_numpad(target: LineEdit, title_str: String, is_secret: bool = false):
+	numpad_target = target
+	numpad_value = target.text
+	numpad_secret = is_secret
+	numpad_title.text = title_str
+	_refresh_numpad_display()
+	numpad_modal.visible = true
+
+func _refresh_numpad_display():
+	if numpad_value == "":
+		numpad_display.text = "(입력하세요)"
+	elif numpad_secret:
+		numpad_display.text = "*".repeat(numpad_value.length())
+	else:
+		numpad_display.text = numpad_value

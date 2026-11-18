@@ -1048,6 +1048,11 @@ virtual_keyboard_type = 2
 secret = true
 secret_character = "*"
 
+[node name="PwPadBtn" type="Button" parent="MainViews/TeacherView/Panel/VBox/LockBox/PwRow"]
+custom_minimum_size = Vector2(95, 36)
+layout_mode = 2
+text = "숫자 패드"
+
 [node name="UnlockBtn" type="Button" parent="MainViews/TeacherView/Panel/VBox/LockBox/PwRow"]
 custom_minimum_size = Vector2(110, 36)
 layout_mode = 2
@@ -1562,7 +1567,7 @@ text = "중계 서버:"
 [node name="RelayInput" type="LineEdit" parent="LobbyOverlay/Panel/VBox/RelayRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "wss://mqtt.eclipseprojects.io/mqtt"
+text = "wss://broker.emqx.io:8084/mqtt"
 placeholder_text = "wss:// WebSocket MQTT 브로커 주소"
 
 [node name="StudentSection" type="VBoxContainer" parent="LobbyOverlay/Panel/VBox"]
@@ -1588,6 +1593,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "이름을 입력하세요 (예: 김민수)"
 
+[node name="WebNameBtn" type="Button" parent="LobbyOverlay/Panel/VBox/StudentSection/NameRow"]
+custom_minimum_size = Vector2(85, 32)
+layout_mode = 2
+text = "키보드"
+
 [node name="CodeRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox/StudentSection"]
 layout_mode = 2
 
@@ -1601,6 +1611,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "선생님 화면에 뜬 4자리 숫자 (예: 4829)"
 virtual_keyboard_type = 2
+
+[node name="CodePadBtn" type="Button" parent="LobbyOverlay/Panel/VBox/StudentSection/CodeRow"]
+custom_minimum_size = Vector2(95, 32)
+layout_mode = 2
+text = "숫자 패드"
 
 [node name="SelectRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox/StudentSection"]
 layout_mode = 2
@@ -1794,6 +1809,66 @@ custom_minimum_size = Vector2(140, 36)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "닫기"
+
+[node name="NumpadModal" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="NumpadModal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Panel" type="PanelContainer" parent="NumpadModal"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -170.0
+offset_right = 140.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="NumpadModal/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="NumpadModal/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 16
+text = "숫자 입력"
+horizontal_alignment = 1
+
+[node name="DisplayLbl" type="Label" parent="NumpadModal/Panel/VBox"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15, 0.08, 0.02, 1)
+theme_override_font_sizes/font_size = 20
+text = "(입력하세요)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="NumpadModal/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+columns = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 """
 
 with open('scenes/main.tscn', 'w', encoding='utf-8') as f:

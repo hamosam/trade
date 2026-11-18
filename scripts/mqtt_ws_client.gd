@@ -49,7 +49,7 @@ func poll(delta: float):
 
 		if is_mqtt_ready:
 			ping_timer += delta
-			if ping_timer >= 20.0:
+			if ping_timer >= 10.0:
 				ping_timer = 0.0
 				_send_ping()
 
@@ -96,7 +96,7 @@ func _send_connect():
 		0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, # "MQTT"
 		0x04, # Level 4 (3.1.1)
 		0x02, # Clean session
-		0x00, 0x3C # Keepalive 60s
+		0x03, 0x84 # Keepalive 900s (15 minutes!)
 	])
 	var pl := _encode_str(client_id)
 	var body := PackedByteArray()
@@ -108,7 +108,8 @@ func _send_connect():
 	ws.send(pkt, WebSocketPeer.WRITE_MODE_BINARY)
 
 func _send_ping():
-	ws.send(PackedByteArray([0xC0, 0x00]), WebSocketPeer.WRITE_MODE_BINARY)
+	if is_mqtt_ready and ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		ws.send(PackedByteArray([0xC0, 0x00]), WebSocketPeer.WRITE_MODE_BINARY)
 
 func _process_rx_buffer():
 	while rx_buffer.size() >= 2:

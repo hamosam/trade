@@ -20,11 +20,11 @@ signal network_status_changed(status_text, is_connected)
 signal room_code_ready(code)
 signal roster_updated
 
-const DEFAULT_RELAY_URL: String = "wss://mqtt.eclipseprojects.io/mqtt"
+const DEFAULT_RELAY_URL: String = "wss://broker.emqx.io:8084/mqtt"
 const FALLBACK_BROKERS: Array = [
-	"wss://mqtt.eclipseprojects.io/mqtt",
 	"wss://broker.emqx.io:8084/mqtt",
-	"wss://broker.hivemq.com:8884/mqtt"
+	"wss://broker.hivemq.com:8884/mqtt",
+	"wss://test.mosquitto.org:8081/mqtt"
 ]
 const TOPIC_PREFIX: String = "hamo_trade_2026"
 const TEACHER_PASSWORD: String = "1234"
@@ -44,6 +44,8 @@ var client_joined: bool = false
 var broker_try_idx: int = 0
 var reconnect_timer: float = 0.0
 var connect_timeout: float = 0.0
+var host_keepalive_timer: float = 0.0
+var host_has_started: bool = false
 
 # Game loop variables
 var game_time_left: float = 900.0 # 15 minutes
@@ -136,7 +138,7 @@ var countries: Dictionary = {
 	"port_city": {
 		"id": "port_city", "name": "항구 도시", "short": "항구",
 		"color": Color("249ea0"),
-		"iron": 6, "food": 6, "energy": 2, "semiconductor": 2, "gold": 180,
+		"iron": 4, "food": 4, "energy": 2, "semiconductor": 2, "gold": 140,
 		"smartphones": 0, "score": 0,
 		"special_trait": "해상 무역 속도 50% 단축, 해상 운송 관세 면제",
 		"building_sprite": "res://assets/sprites/building_port.png",
@@ -147,9 +149,9 @@ var countries: Dictionary = {
 	"trade_union": {
 		"id": "trade_union", "name": "무역 연합", "short": "연합",
 		"color": Color("8e54a8"),
-		"iron": 2, "food": 2, "energy": 6, "semiconductor": 6, "gold": 350,
+		"iron": 2, "food": 2, "energy": 4, "semiconductor": 3, "gold": 220,
 		"smartphones": 0, "score": 0,
-		"special_trait": "초기 자본금 350G 시작, 모든 거래 수수료 50% 영구 감면",
+		"special_trait": "초기 자본금 220G 시작, 모든 거래 수수료 50% 영구 감면",
 		"building_sprite": "res://assets/sprites/building_trade.png",
 		"char_sprite": "res://assets/sprites/characters/char_trade.png",
 		"map_pos": Vector2(1050, 455), "port_pos": Vector2(975, 415),
@@ -303,6 +305,7 @@ func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
 	ws_connected = false
 	ws_connecting = true
 	client_joined = false
+	host_has_started = false
 	broker_try_idx = 0
 	connect_timeout = 0.0
 
@@ -334,6 +337,7 @@ func join_classroom_by_code(relay_url: String, code: String, p_name: String, cou
 	ws_connected = false
 	ws_connecting = true
 	client_joined = false
+	host_has_started = false
 	broker_try_idx = 0
 	connect_timeout = 0.0
 
@@ -372,11 +376,17 @@ func _poll_websocket(delta: float):
 	if not ws_connected and not ws_connecting and room_code != "" and is_game_started:
 		if play_mode == "host" or client_joined:
 			reconnect_timer += delta
-			if reconnect_timer >= 3.0:
+			if reconnect_timer >= 2.0:
 				reconnect_timer = 0.0
 				ws_connecting = true
 				connect_timeout = 0.0
-				mqtt.connect_broker(ws_url)
+				mqtt.connect_broker(FALLBACK_BROKERS[min(broker_try_idx, FALLBACK_BROKERS.size() - 1)] if ws_url == DEFAULT_RELAY_URL else ws_url)
+
+	if ws_connected and play_mode == "host":
+		host_keepalive_timer += delta
+		if host_keepalive_timer >= 12.0:
+			host_keepalive_timer = 0.0
+			_relay_to_all({"cmd": "keepalive"})
 
 func _on_mqtt_connected():
 	ws_connected = true
@@ -384,7 +394,9 @@ func _on_mqtt_connected():
 	connect_timeout = 0.0
 	if play_mode == "host":
 		mqtt.subscribe("%s/%s/to_host" % [TOPIC_PREFIX, room_code])
-		is_game_running = true
+		if not host_has_started:
+			host_has_started = true
+			is_game_running = true
 		room_code_ready.emit(room_code)
 		role_changed.emit(current_player_country, current_player_role)
 		network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
@@ -588,11 +600,11 @@ func _tick_production():
 				energy_base = 3 + c["automation_lvl"]
 				semi_base = 1
 			"port_city":
-				iron_base = 2; food_base = 2
-				c["gold"] += int(round(5 * era_mult))
+				iron_base = 1; food_base = 1
+				c["gold"] += int(round(2 * era_mult))
 			"trade_union":
-				energy_base = 2; semi_base = 2
-				c["gold"] += int(round(6 * era_mult))
+				energy_base = 1; semi_base = 1
+				c["gold"] += int(round(3 * era_mult))
 
 		if iron_base > 0:
 			c["iron"] += int(round(iron_base * auto_bonus * active_event["iron_mult"]))
@@ -1108,8 +1120,8 @@ func _reset_world_state():
 			"agri_empire": c["iron"] = 2; c["food"] = 25; c["energy"] = 2; c["semiconductor"] = 2; c["gold"] = 120
 			"tech_lab": c["iron"] = 2; c["food"] = 2; c["energy"] = 2; c["semiconductor"] = 22; c["gold"] = 120
 			"energy_base": c["iron"] = 2; c["food"] = 2; c["energy"] = 25; c["semiconductor"] = 2; c["gold"] = 120
-			"port_city": c["iron"] = 6; c["food"] = 6; c["energy"] = 2; c["semiconductor"] = 2; c["gold"] = 180
-			"trade_union": c["iron"] = 2; c["food"] = 2; c["energy"] = 6; c["semiconductor"] = 6; c["gold"] = 350
+			"port_city": c["iron"] = 4; c["food"] = 4; c["energy"] = 2; c["semiconductor"] = 2; c["gold"] = 140
+			"trade_union": c["iron"] = 2; c["food"] = 2; c["energy"] = 4; c["semiconductor"] = 3; c["gold"] = 220
 		country_data_changed.emit(c_id)
 	game_reset.emit()
 	all_data_changed.emit()

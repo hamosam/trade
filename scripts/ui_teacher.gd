@@ -2,6 +2,7 @@ extends Control
 
 @onready var lock_box = $Panel/VBox/LockBox
 @onready var pw_input = $Panel/VBox/LockBox/PwRow/PwInput
+@onready var pw_pad_btn = $Panel/VBox/LockBox/PwRow/PwPadBtn
 @onready var unlock_btn = $Panel/VBox/LockBox/PwRow/UnlockBtn
 @onready var pw_msg = $Panel/VBox/LockBox/PwMsg
 
@@ -26,6 +27,10 @@ func _ready():
 	unlock_btn.pressed.connect(_try_unlock)
 	pw_input.text_submitted.connect(func(_t): _try_unlock())
 	pw_input.focus_entered.connect(func(): DisplayServer.window_set_ime_active(false))
+	pw_pad_btn.pressed.connect(func():
+		SoundManager.play_click()
+		get_tree().current_scene.open_numpad(pw_input, "교사 비밀번호 입력", true)
+	)
 	btn_lock.pressed.connect(_lock_panel)
 
 	btn_shipping.pressed.connect(func(): _trigger_news(0))
