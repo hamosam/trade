@@ -73,6 +73,12 @@ func _on_input_gui_input(event: InputEvent):
 		get_viewport().set_input_as_handled()
 		var ch = char(event.unicode)
 		_sync_text(ime.feed_key(ch))
+	elif event.unicode > 126:
+		# 웹/태블릿 가상 키보드가 완성된 한글을 직접 보낼 때도 정상 반영
+		get_viewport().set_input_as_handled()
+		ime.flush()
+		ime.committed += char(event.unicode)
+		_sync_text(ime.get_full_text())
 
 func _sync_text(new_text: String):
 	broadcast_input.text = new_text

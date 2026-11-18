@@ -210,6 +210,14 @@ func _on_input_gui_input(event: InputEvent):
 		order_input.text = t
 		order_input.set_caret_line(0)
 		order_input.set_caret_column(t.length())
+	elif event.unicode > 126:
+		get_viewport().set_input_as_handled()
+		ime.flush()
+		ime.committed += char(event.unicode)
+		var t = ime.get_full_text()
+		order_input.text = t
+		order_input.set_caret_line(0)
+		order_input.set_caret_column(t.length())
 
 func _on_send_order_pressed():
 	SoundManager.play_click()
