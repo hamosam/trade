@@ -1,0 +1,1793 @@
+[gd_scene load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world_map.gd" id="2_map"]
+[ext_resource type="Script" path="res://scripts/ui_diplomat.gd" id="3_diplomat"]
+[ext_resource type="Script" path="res://scripts/ui_treasurer.gd" id="4_treasurer"]
+[ext_resource type="Script" path="res://scripts/ui_technician.gd" id="5_technician"]
+[ext_resource type="Script" path="res://scripts/ui_analyst.gd" id="6_analyst"]
+[ext_resource type="Script" path="res://scripts/ui_spokesperson.gd" id="7_spokesperson"]
+[ext_resource type="Script" path="res://scripts/ui_teacher.gd" id="8_teacher"]
+
+[ext_resource type="Texture2D" path="res://assets/ui/wood_panel.png" id="9_woodpanel"]
+[ext_resource type="Texture2D" path="res://assets/ui/wood_btn_normal.png" id="10_btnnorm"]
+[ext_resource type="Texture2D" path="res://assets/ui/wood_btn_hover.png" id="11_btnhov"]
+[ext_resource type="Texture2D" path="res://assets/ui/wood_btn_pressed.png" id="12_btnpress"]
+[ext_resource type="Texture2D" path="res://assets/ui/item_slot.png" id="13_slot"]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/res_iron.png" id="14_iron"]
+[ext_resource type="Texture2D" path="res://assets/sprites/res_food.png" id="15_food"]
+[ext_resource type="Texture2D" path="res://assets/sprites/res_energy.png" id="16_energy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/res_semiconductor.png" id="17_semi"]
+[ext_resource type="Texture2D" path="res://assets/sprites/res_gold.png" id="18_gold"]
+[ext_resource type="Texture2D" path="res://assets/sprites/res_phone.png" id="19_phone"]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/role_diplomat.png" id="20_rdip"]
+[ext_resource type="Texture2D" path="res://assets/sprites/role_treasurer.png" id="21_rtre"]
+[ext_resource type="Texture2D" path="res://assets/sprites/role_technician.png" id="22_rtec"]
+[ext_resource type="Texture2D" path="res://assets/sprites/role_analyst.png" id="23_rana"]
+[ext_resource type="Texture2D" path="res://assets/sprites/role_spokesperson.png" id="24_rspo"]
+[ext_resource type="Texture2D" path="res://assets/sprites/role_teacher.png" id="25_rtea"]
+[ext_resource type="Texture2D" path="res://assets/sprites/portraits/portrait_analyst.png" id="26_portdef"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_WoodBar"]
+bg_color = Color(0.32, 0.17, 0.08, 1)
+border_width_bottom = 3
+border_color = Color(0.18, 0.08, 0.04, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_WoodPanel"]
+texture = ExtResource("9_woodpanel")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_BtnNormal"]
+texture = ExtResource("10_btnnorm")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_BtnHover"]
+texture = ExtResource("11_btnhov")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_BtnPressed"]
+texture = ExtResource("12_btnpress")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_DarkSlot"]
+bg_color = Color(0.24, 0.13, 0.06, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.35, 0.18, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_NewsBanner"]
+bg_color = Color(0.78, 0.20, 0.16, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.38, 0.06, 0.04, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_size = 6
+shadow_color = Color(0, 0, 0, 0.4)
+
+[sub_resource type="Theme" id="Theme_Stardew"]
+Button/colors/font_color = Color(0.22, 0.11, 0.04, 1)
+Button/colors/font_hover_color = Color(0.15, 0.06, 0.01, 1)
+Button/colors/font_pressed_color = Color(0.95, 0.9, 0.8, 1)
+Button/styles/hover = SubResource("StyleBoxTexture_BtnHover")
+Button/styles/normal = SubResource("StyleBoxTexture_BtnNormal")
+Button/styles/pressed = SubResource("StyleBoxTexture_BtnPressed")
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_Stardew")
+script = ExtResource("1_main")
+
+[node name="MainViews" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 84.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="WorldMap" type="Control" parent="MainViews"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_map")
+
+[node name="DiplomatView" type="Control" parent="MainViews"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_diplomat")
+
+[node name="Panel" type="PanelContainer" parent="MainViews/DiplomatView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.06
+anchor_top = 0.04
+anchor_right = 0.94
+anchor_bottom = 0.85
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/DiplomatView/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 19
+text = "외교부 무역 협상실"
+horizontal_alignment = 1
+
+[node name="TradeForm" type="VBoxContainer" parent="MainViews/DiplomatView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TargetRow" type="HBoxContainer" parent="MainViews/DiplomatView/Panel/VBox/TradeForm"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/TargetRow"]
+custom_minimum_size = Vector2(120, 0)
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "협상 대상 국가:"
+
+[node name="TargetOption" type="OptionButton" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/TargetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="OfferRow" type="HBoxContainer" parent="MainViews/DiplomatView/Panel/VBox/TradeForm"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
+custom_minimum_size = Vector2(120, 0)
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "보낼 자원:"
+
+[node name="OfferResOption" type="OptionButton" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QtyLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "수량:"
+
+[node name="OfferQtySpin" type="SpinBox" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
+layout_mode = 2
+min_value = 1.0
+max_value = 50.0
+value = 3.0
+
+[node name="GoldLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "보낼 골드(G):"
+
+[node name="OfferGoldSpin" type="SpinBox" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
+layout_mode = 2
+max_value = 500.0
+
+[node name="RequestRow" type="HBoxContainer" parent="MainViews/DiplomatView/Panel/VBox/TradeForm"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
+custom_minimum_size = Vector2(120, 0)
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "받을 자원:"
+
+[node name="ReqResOption" type="OptionButton" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QtyLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "수량:"
+
+[node name="ReqQtySpin" type="SpinBox" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
+layout_mode = 2
+min_value = 1.0
+max_value = 50.0
+value = 3.0
+
+[node name="GoldLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "받을 골드(G):"
+
+[node name="ReqGoldSpin" type="SpinBox" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
+layout_mode = 2
+max_value = 500.0
+
+[node name="SendBtn" type="Button" parent="MainViews/DiplomatView/Panel/VBox/TradeForm"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "무역 제안서 보내기"
+
+[node name="TeamOrderBox" type="PanelContainer" parent="MainViews/DiplomatView/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="OrderText" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TeamOrderBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_font_sizes/font_size = 13
+text = "정보 분석가의 작전 지시를 기다리는 중입니다."
+autowrap_mode = 2
+
+[node name="InboxTitle" type="Label" parent="MainViews/DiplomatView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 15
+text = "도착한 무역 제안서 (수락하면 즉시 무역선이 출항합니다)"
+
+[node name="InboxScroll" type="ScrollContainer" parent="MainViews/DiplomatView/Panel/VBox"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ProposalsVBox" type="VBoxContainer" parent="MainViews/DiplomatView/Panel/VBox/InboxScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HistoryLabel" type="Label" parent="MainViews/DiplomatView/Panel/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.20, 0.10, 1)
+theme_override_font_sizes/font_size = 12
+text = "최근 무역 기록이 여기에 표시됩니다."
+autowrap_mode = 2
+
+[node name="TreasurerView" type="Control" parent="MainViews"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_treasurer")
+
+[node name="Panel" type="PanelContainer" parent="MainViews/TreasurerView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.06
+anchor_top = 0.04
+anchor_right = 0.94
+anchor_bottom = 0.85
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/TreasurerView/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="MainViews/TreasurerView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 19
+text = "국가 금고 및 인프라 투자 센터"
+horizontal_alignment = 1
+
+[node name="TraitBox" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="TraitDesc" type="Label" parent="MainViews/TreasurerView/Panel/VBox/TraitBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.6, 1)
+text = "고유 특성 정보"
+horizontal_alignment = 1
+
+[node name="VaultGrid" type="GridContainer" parent="MainViews/TreasurerView/Panel/VBox"]
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="IronCard" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/IronCard"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/IronCard/HBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+texture = ExtResource("14_iron")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/IronCard/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = " 철광석"
+
+[node name="Val" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/IronCard/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "0개"
+
+[node name="FoodCard" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/FoodCard"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/FoodCard/HBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+texture = ExtResource("15_food")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/FoodCard/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = " 식량"
+
+[node name="Val" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/FoodCard/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "0개"
+
+[node name="EnergyCard" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/EnergyCard"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/EnergyCard/HBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+texture = ExtResource("16_energy")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/EnergyCard/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = " 에너지"
+
+[node name="Val" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/EnergyCard/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "0개"
+
+[node name="SemiCard" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/SemiCard"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/SemiCard/HBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+texture = ExtResource("17_semi")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/SemiCard/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = " 반도체"
+
+[node name="Val" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/SemiCard/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "0개"
+
+[node name="GoldCard" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/GoldCard"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/GoldCard/HBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+texture = ExtResource("18_gold")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/GoldCard/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = " 국고 골드"
+
+[node name="Val" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/GoldCard/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+text = "0 G"
+
+[node name="PhoneCard" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/PhoneCard"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/PhoneCard/HBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+texture = ExtResource("19_phone")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/PhoneCard/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = " 스마트폰"
+
+[node name="Val" type="Label" parent="MainViews/TreasurerView/Panel/VBox/VaultGrid/PhoneCard/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+text = "0대"
+
+[node name="UpgradesBox" type="VBoxContainer" parent="MainViews/TreasurerView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="UpgradesTitle" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 15
+text = "국가 인프라 영구 업그레이드"
+
+[node name="UpgradeGrid" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AutoCard" type="VBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/AutoCard"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "생산 자동화"
+horizontal_alignment = 1
+
+[node name="LvlLbl" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/AutoCard"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lv.1"
+horizontal_alignment = 1
+
+[node name="BuyBtn" type="Button" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/AutoCard"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "투자 (120 G)"
+
+[node name="LogCard" type="VBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/LogCard"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "무역·물류 인프라"
+horizontal_alignment = 1
+
+[node name="LvlLbl" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/LogCard"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lv.1"
+horizontal_alignment = 1
+
+[node name="BuyBtn" type="Button" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/LogCard"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "투자 (120 G)"
+
+[node name="RndCard" type="VBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Name" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/RndCard"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "기술 R&D 센터"
+horizontal_alignment = 1
+
+[node name="LvlLbl" type="Label" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/RndCard"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lv.1"
+horizontal_alignment = 1
+
+[node name="BuyBtn" type="Button" parent="MainViews/TreasurerView/Panel/VBox/UpgradesBox/UpgradeGrid/RndCard"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "투자 (120 G)"
+
+[node name="EraBox" type="PanelContainer" parent="MainViews/TreasurerView/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HBox" type="HBoxContainer" parent="MainViews/TreasurerView/Panel/VBox/EraBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EraStatusLbl" type="Label" parent="MainViews/TreasurerView/Panel/VBox/EraBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.92, 0.55, 1)
+theme_override_font_sizes/font_size = 13
+text = "현재 발전 단계: [자원 국가]"
+autowrap_mode = 2
+
+[node name="EraBtn" type="Button" parent="MainViews/TreasurerView/Panel/VBox/EraBox/HBox"]
+custom_minimum_size = Vector2(185, 36)
+layout_mode = 2
+text = "산업 국가 승급 (1000 G)"
+
+[node name="TechnicianView" type="Control" parent="MainViews"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_technician")
+
+[node name="Panel" type="PanelContainer" parent="MainViews/TechnicianView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.06
+anchor_top = 0.04
+anchor_right = 0.94
+anchor_bottom = 0.85
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/TechnicianView/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 19
+text = "스마트폰 정밀 조립 공장"
+horizontal_alignment = 1
+
+[node name="RecipeDesc" type="Label" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.20, 0.10, 1)
+text = "조립에 필요한 재료: 철광석 1 + 식량 1 + 에너지 1 + 반도체 1"
+horizontal_alignment = 1
+
+[node name="RecipeContainer" type="HBoxContainer" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="IronSlot" type="VBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Icon" type="TextureRect" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/IronSlot"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+texture = ExtResource("14_iron")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/IronSlot"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "철광석"
+horizontal_alignment = 1
+
+[node name="Count" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/IronSlot"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "보유: 0 / 1"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/IronSlot"]
+theme_override_font_sizes/font_size = 13
+text = "부족"
+horizontal_alignment = 1
+
+[node name="FoodSlot" type="VBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Icon" type="TextureRect" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/FoodSlot"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+texture = ExtResource("15_food")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/FoodSlot"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "식량"
+horizontal_alignment = 1
+
+[node name="Count" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/FoodSlot"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "보유: 0 / 1"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/FoodSlot"]
+theme_override_font_sizes/font_size = 13
+text = "부족"
+horizontal_alignment = 1
+
+[node name="EnergySlot" type="VBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Icon" type="TextureRect" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/EnergySlot"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+texture = ExtResource("16_energy")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/EnergySlot"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "에너지"
+horizontal_alignment = 1
+
+[node name="Count" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/EnergySlot"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "보유: 0 / 1"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/EnergySlot"]
+theme_override_font_sizes/font_size = 13
+text = "부족"
+horizontal_alignment = 1
+
+[node name="SemiSlot" type="VBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Icon" type="TextureRect" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/SemiSlot"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+texture = ExtResource("17_semi")
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/SemiSlot"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "반도체"
+horizontal_alignment = 1
+
+[node name="Count" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/SemiSlot"]
+theme_override_colors/font_color = Color(0.4, 0.25, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "보유: 0 / 1"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="MainViews/TechnicianView/Panel/VBox/RecipeContainer/SemiSlot"]
+theme_override_font_sizes/font_size = 13
+text = "부족"
+horizontal_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="MainViews/TechnicianView/Panel/VBox"]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+
+[node name="TargetHint" type="Label" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15, 0.45, 0.18, 1)
+theme_override_font_sizes/font_size = 12
+text = "정밀 조립 목표 구간: 50% ~ 51% (1% 극한 타이밍에 맞추면 명품 스마트폰 보너스 +50점, +30G!)"
+horizontal_alignment = 1
+
+[node name="AssembleBtn" type="Button" parent="MainViews/TechnicianView/Panel/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "스마트폰 조립 시작 (독점 권한)"
+
+[node name="ActionRow" type="HBoxContainer" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GatherBtn" type="Button" parent="MainViews/TechnicianView/Panel/VBox/ActionRow"]
+custom_minimum_size = Vector2(210, 36)
+layout_mode = 2
+text = "특산 자원 직접 생산 (+2개)"
+
+[node name="ConvertBox" type="HBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/ActionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Lbl" type="Label" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "비상 가공(4→1):"
+
+[node name="FromOpt" type="OptionButton" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Arrow" type="Label" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "→"
+
+[node name="ToOpt" type="OptionButton" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConvertBtn" type="Button" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
+custom_minimum_size = Vector2(85, 36)
+layout_mode = 2
+text = "변환"
+
+[node name="ResultLabel" type="Label" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.45, 0.15, 1)
+text = "공정이 대기 중입니다."
+horizontal_alignment = 1
+
+[node name="StatsLabel" type="Label" parent="MainViews/TechnicianView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 15
+text = "완성 스마트폰: 0대"
+horizontal_alignment = 1
+
+[node name="AnalystView" type="Control" parent="MainViews"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_analyst")
+
+[node name="Panel" type="PanelContainer" parent="MainViews/AnalystView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.06
+anchor_top = 0.04
+anchor_right = 0.94
+anchor_bottom = 0.85
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/AnalystView/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="MainViews/AnalystView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 19
+text = "경제기획원 · 6개국 실시간 자원 현황"
+horizontal_alignment = 1
+
+[node name="MarketBox" type="PanelContainer" parent="MainViews/AnalystView/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="MarketText" type="Label" parent="MainViews/AnalystView/Panel/VBox/MarketBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "실시간 세계 자원 시세 로딩 중..."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViews/AnalystView/Panel/VBox"]
+custom_minimum_size = Vector2(0, 175)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TableVBox" type="VBoxContainer" parent="MainViews/AnalystView/Panel/VBox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="StrategyBox" type="PanelContainer" parent="MainViews/AnalystView/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="StrategyText" type="Label" parent="MainViews/AnalystView/Panel/VBox/StrategyBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+text = "전략 분석 보고서 로딩 중..."
+autowrap_mode = 2
+
+[node name="CommandRow" type="HBoxContainer" parent="MainViews/AnalystView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FindMatchBtn" type="Button" parent="MainViews/AnalystView/Panel/VBox/CommandRow"]
+custom_minimum_size = Vector2(145, 34)
+layout_mode = 2
+text = "최적 무역 상대 찾기"
+
+[node name="ImeBtn" type="Button" parent="MainViews/AnalystView/Panel/VBox/CommandRow"]
+custom_minimum_size = Vector2(54, 34)
+layout_mode = 2
+text = "한글"
+
+[node name="OrderInput" type="TextEdit" parent="MainViews/AnalystView/Panel/VBox/CommandRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "대외 협상가에게 보낼 작전 지시 (예: 기술 연구소에서 반도체 구해와!)"
+scroll_fit_content_height = true
+
+[node name="SendOrderBtn" type="Button" parent="MainViews/AnalystView/Panel/VBox/CommandRow"]
+custom_minimum_size = Vector2(140, 34)
+layout_mode = 2
+text = "협상가에게 지시"
+
+[node name="SpokespersonView" type="Control" parent="MainViews"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_spokesperson")
+
+[node name="Panel" type="PanelContainer" parent="MainViews/SpokespersonView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.06
+anchor_top = 0.04
+anchor_right = 0.94
+anchor_bottom = 0.85
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/SpokespersonView/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="MainViews/SpokespersonView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 19
+text = "국가 대변인 · 대외 홍보 및 속보 대응"
+horizontal_alignment = 1
+
+[node name="NewsCard" type="PanelContainer" parent="MainViews/SpokespersonView/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/SpokespersonView/Panel/VBox/NewsCard"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainViews/SpokespersonView/Panel/VBox/NewsCard/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "현재 국제 정세: 평화로운 무역 협정"
+
+[node name="Desc" type="Label" parent="MainViews/SpokespersonView/Panel/VBox/NewsCard/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+text = "정상적인 해상 무역이 진행 중입니다."
+autowrap_mode = 2
+
+[node name="QuickBox" type="HBoxContainer" parent="MainViews/SpokespersonView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Btn1" type="Button" parent="MainViews/SpokespersonView/Panel/VBox/QuickBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "특가 수출 홍보"
+
+[node name="Btn2" type="Button" parent="MainViews/SpokespersonView/Panel/VBox/QuickBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "부품 긴급 매입"
+
+[node name="Btn3" type="Button" parent="MainViews/SpokespersonView/Panel/VBox/QuickBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "우호 동맹 제안"
+
+[node name="BroadcastBox" type="HBoxContainer" parent="MainViews/SpokespersonView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TargetOpt" type="OptionButton" parent="MainViews/SpokespersonView/Panel/VBox/BroadcastBox"]
+custom_minimum_size = Vector2(180, 34)
+layout_mode = 2
+
+[node name="ImeBtn" type="Button" parent="MainViews/SpokespersonView/Panel/VBox/BroadcastBox"]
+custom_minimum_size = Vector2(54, 34)
+layout_mode = 2
+text = "한글"
+
+[node name="InputText" type="TextEdit" parent="MainViews/SpokespersonView/Panel/VBox/BroadcastBox"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "전 세계 방송 또는 1:1 대화 메시지를 입력하세요..."
+scroll_fit_content_height = true
+
+[node name="SendBtn" type="Button" parent="MainViews/SpokespersonView/Panel/VBox/BroadcastBox"]
+custom_minimum_size = Vector2(90, 34)
+layout_mode = 2
+text = "전송하기"
+
+[node name="FeedScroll" type="ScrollContainer" parent="MainViews/SpokespersonView/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FeedLabel" type="RichTextLabel" parent="MainViews/SpokespersonView/Panel/VBox/FeedScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[color=#38200f]글로벌 통신 채널이 열려 있습니다.[/color]"
+fit_content = true
+
+[node name="TeacherView" type="Control" parent="MainViews"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_teacher")
+
+[node name="Panel" type="PanelContainer" parent="MainViews/TeacherView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.06
+anchor_top = 0.04
+anchor_right = 0.94
+anchor_bottom = 0.85
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="MainViews/TeacherView/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="MainViews/TeacherView/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 19
+text = "교사 제어판 · 돌발 경제 뉴스 및 수업 관리"
+horizontal_alignment = 1
+
+[node name="LockBox" type="VBoxContainer" parent="MainViews/TeacherView/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="LockInfo" type="Label" parent="MainViews/TeacherView/Panel/VBox/LockBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.18, 0.08, 1)
+theme_override_font_sizes/font_size = 15
+text = "교사 전용 제어판입니다. 비밀번호를 입력해 잠금을 해제하세요."
+horizontal_alignment = 1
+
+[node name="PwRow" type="HBoxContainer" parent="MainViews/TeacherView/Panel/VBox/LockBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="PwInput" type="LineEdit" parent="MainViews/TeacherView/Panel/VBox/LockBox/PwRow"]
+custom_minimum_size = Vector2(220, 36)
+layout_mode = 2
+placeholder_text = "비밀번호 입력 (기본: 1234)"
+secret = true
+
+[node name="UnlockBtn" type="Button" parent="MainViews/TeacherView/Panel/VBox/LockBox/PwRow"]
+custom_minimum_size = Vector2(110, 36)
+layout_mode = 2
+text = "잠금 해제"
+
+[node name="PwMsg" type="Label" parent="MainViews/TeacherView/Panel/VBox/LockBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 13
+text = ""
+horizontal_alignment = 1
+
+[node name="ContentBox" type="VBoxContainer" parent="MainViews/TeacherView/Panel/VBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="NewsGrid" type="GridContainer" parent="MainViews/TeacherView/Panel/VBox/ContentBox"]
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="BtnShipping" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/NewsGrid"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "물류 대란 발령 (운송 지연)"
+
+[node name="BtnTariff" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/NewsGrid"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "관세 인상 발령 (수수료)"
+
+[node name="BtnHarvest" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/NewsGrid"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "농업 풍작 발령 (전 국가 식량 2배)"
+
+[node name="BtnSemi" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/NewsGrid"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "반도체 쇼티지 (가치 폭등)"
+
+[node name="BtnEnergy" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/NewsGrid"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "에너지 혁신 (전 국가 에너지 2배)"
+
+[node name="BtnRelic" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/NewsGrid"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "고대 유적 발견 (전체 +5)"
+
+[node name="ControlRow" type="HBoxContainer" parent="MainViews/TeacherView/Panel/VBox/ContentBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BtnPause" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/ControlRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "일시 정지"
+
+[node name="BtnAddTime" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/ControlRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "시간 +3분 추가"
+
+[node name="BtnAiFill" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/ControlRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "빈 국가 AI: OFF"
+
+[node name="BtnReset" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/ControlRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "전체 게임 초기화"
+
+[node name="BtnLock" type="Button" parent="MainViews/TeacherView/Panel/VBox/ContentBox/ControlRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "제어판 잠그기"
+
+[node name="StatusLabel" type="Label" parent="MainViews/TeacherView/Panel/VBox/ContentBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "학급 현황 로딩 중..."
+autowrap_mode = 2
+
+[node name="TopBar" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_WoodBar")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SpacerLeft" type="Control" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+
+[node name="GameTitle" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "글로벌 무역 대작전: 자원 섬의 비밀"
+
+[node name="NetStatusLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.75, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "준비 중"
+
+[node name="CountryLbl" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.85, 0.7, 1)
+text = "소속 국가:"
+
+[node name="CountryOption" type="OptionButton" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(140, 28)
+layout_mode = 2
+
+[node name="TimerLabel" type="Label" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "15:00"
+horizontal_alignment = 2
+
+[node name="HomeBtn" type="Button" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(92, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "시작 화면"
+
+[node name="SpacerRight" type="Control" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+
+[node name="TabButtonsContainer" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 42.0
+offset_bottom = 80.0
+grow_horizontal = 2
+theme_override_constants/separation = 4
+
+[node name="BtnMap" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "세계 지도"
+metadata/role = "overworld"
+
+[node name="BtnDiplomat" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+icon = ExtResource("20_rdip")
+text = "대외 협상가"
+metadata/role = "diplomat"
+
+[node name="BtnTreasurer" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+icon = ExtResource("21_rtre")
+text = "자원 관리자"
+metadata/role = "treasurer"
+
+[node name="BtnTechnician" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+icon = ExtResource("22_rtec")
+text = "생산·기술 총괄"
+metadata/role = "technician"
+
+[node name="BtnAnalyst" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+icon = ExtResource("23_rana")
+text = "정보 분석가"
+metadata/role = "analyst"
+
+[node name="BtnSpokesperson" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+icon = ExtResource("24_rspo")
+text = "국가 대변인"
+metadata/role = "spokesperson"
+
+[node name="BtnTeacher" type="Button" parent="TabButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+icon = ExtResource("25_rtea")
+text = "교사 제어판"
+metadata/role = "teacher"
+
+[node name="GuideStrip" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = -76.0
+offset_right = -18.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="HBox" type="HBoxContainer" parent="GuideStrip"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PortraitTex" type="TextureRect" parent="GuideStrip/HBox"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+texture = ExtResource("26_portdef")
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="GuideStrip/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RoleName" type="Label" parent="GuideStrip/HBox/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.18, 0.05, 1)
+theme_override_font_sizes/font_size = 13
+text = "철강 왕국 · 세계 지도"
+
+[node name="SpeechText" type="Label" parent="GuideStrip/HBox/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 13
+text = "섬을 클릭해 국가를 선택하거나, 바다 위를 오가는 무역선들을 살펴보세요!"
+
+[node name="NewsBannerOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 84.0
+offset_bottom = 166.0
+grow_horizontal = 2
+
+[node name="Panel" type="PanelContainer" parent="NewsBannerOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -36.0
+offset_right = 360.0
+offset_bottom = 36.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_NewsBanner")
+
+[node name="VBox" type="VBoxContainer" parent="NewsBannerOverlay/Panel"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="NewsBannerOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.4, 1)
+theme_override_font_sizes/font_size = 15
+text = "긴급 경제 속보"
+horizontal_alignment = 1
+
+[node name="Desc" type="Label" parent="NewsBannerOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "속보 내용"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="NewsBannerOverlay/Panel/VBox"]
+custom_minimum_size = Vector2(80, 20)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 11
+text = "확인"
+
+[node name="TitleOverlay" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="TitleOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.14, 0.22, 0.72)
+
+[node name="Panel" type="PanelContainer" parent="TitleOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -230.0
+offset_right = 350.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="TitleOverlay/Panel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="IconShowcase" type="HBoxContainer" parent="TitleOverlay/Panel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="Iron" type="TextureRect" parent="TitleOverlay/Panel/VBox/IconShowcase"]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+texture = ExtResource("14_iron")
+stretch_mode = 5
+
+[node name="Food" type="TextureRect" parent="TitleOverlay/Panel/VBox/IconShowcase"]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+texture = ExtResource("15_food")
+stretch_mode = 5
+
+[node name="Energy" type="TextureRect" parent="TitleOverlay/Panel/VBox/IconShowcase"]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+texture = ExtResource("16_energy")
+stretch_mode = 5
+
+[node name="Semi" type="TextureRect" parent="TitleOverlay/Panel/VBox/IconShowcase"]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+texture = ExtResource("17_semi")
+stretch_mode = 5
+
+[node name="Arrow" type="Label" parent="TitleOverlay/Panel/VBox/IconShowcase"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.18, 0.08, 1)
+theme_override_font_sizes/font_size = 20
+text = "→"
+
+[node name="Phone" type="TextureRect" parent="TitleOverlay/Panel/VBox/IconShowcase"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+texture = ExtResource("19_phone")
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="TitleOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.24, 0.11, 0.04, 1)
+theme_override_font_sizes/font_size = 28
+text = "글로벌 무역 대작전"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="TitleOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.24, 0.10, 1)
+theme_override_font_sizes/font_size = 16
+text = "자원 섬의 비밀 · 6개국 실시간 경제 시뮬레이션"
+horizontal_alignment = 1
+
+[node name="Desc" type="Label" parent="TitleOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.30, 0.18, 0.09, 1)
+theme_override_font_sizes/font_size = 13
+text = "우리 나라만의 특산 자원을 생산하고 다른 나라와 해상 무역을 펼쳐
+스마트폰 완제품(철광석+식량+에너지+반도체)을 가장 많이 완성하세요!"
+horizontal_alignment = 1
+
+[node name="BtnRow" type="HBoxContainer" parent="TitleOverlay/Panel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="ResumeBtn" type="Button" parent="TitleOverlay/Panel/VBox/BtnRow"]
+visible = false
+custom_minimum_size = Vector2(210, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "진행 중인 방으로 돌아가기"
+
+[node name="StartBtn" type="Button" parent="TitleOverlay/Panel/VBox/BtnRow"]
+custom_minimum_size = Vector2(180, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "게임 시작하기"
+
+[node name="HowToBtn" type="Button" parent="TitleOverlay/Panel/VBox/BtnRow"]
+custom_minimum_size = Vector2(160, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "게임 방법 안내"
+
+[node name="QuitBtn" type="Button" parent="TitleOverlay/Panel/VBox/BtnRow"]
+custom_minimum_size = Vector2(100, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "종료"
+
+[node name="HowToBox" type="PanelContainer" parent="TitleOverlay/Panel/VBox"]
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="HowToText" type="Label" parent="TitleOverlay/Panel/VBox/HowToBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
+theme_override_font_sizes/font_size = 12
+text = "1. 각 나라는 2가지 자원만 생산합니다. 부족한 2가지 자원은 외교 협상으로 무역해야 합니다.
+2. 대외 협상가(무역) · 자원 관리자(투자/시대 승급) · 기술 총괄(조립/가공) · 분석가(시세/지시) · 대변인(홍보/1:1대화)이 협력하세요.
+3. 무역이 성사되면 바다 위로 화물선이 출항하며, 도착 시 자원이 지급됩니다!"
+autowrap_mode = 2
+
+[node name="CreditLabel" type="Label" parent="TitleOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.28, 0.14, 1)
+theme_override_font_sizes/font_size = 12
+text = "출처: 하모쌤"
+horizontal_alignment = 1
+
+[node name="LobbyOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="LobbyOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.12, 0.18, 0.65)
+
+[node name="Panel" type="PanelContainer" parent="LobbyOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -330.0
+offset_top = -255.0
+offset_right = 330.0
+offset_bottom = 255.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="LobbyOverlay/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="LobbyOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 22
+text = "글로벌 무역 대작전: 자원 섬의 비밀"
+horizontal_alignment = 1
+
+[node name="Sub" type="Label" parent="LobbyOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.24, 0.12, 1)
+theme_override_font_sizes/font_size = 13
+text = "방 코드로 접속해 6개 섬나라를 경영하고 스마트폰을 완성해 보세요!"
+horizontal_alignment = 1
+
+[node name="RelayRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="LobbyOverlay/Panel/VBox/RelayRow"]
+custom_minimum_size = Vector2(95, 0)
+theme_override_colors/font_color = Color(0.35, 0.2, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "중계 서버:"
+
+[node name="RelayInput" type="LineEdit" parent="LobbyOverlay/Panel/VBox/RelayRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ws://127.0.0.1:8765"
+placeholder_text = "ws:// 또는 wss:// 클라우드 중계 서버 주소"
+
+[node name="StudentSection" type="VBoxContainer" parent="LobbyOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Lbl" type="Label" parent="LobbyOverlay/Panel/VBox/StudentSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 15
+text = "학생 입장 (방 코드 입력)"
+
+[node name="NameRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox/StudentSection"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="LobbyOverlay/Panel/VBox/StudentSection/NameRow"]
+custom_minimum_size = Vector2(95, 0)
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "내 이름:"
+
+[node name="NameInput" type="LineEdit" parent="LobbyOverlay/Panel/VBox/StudentSection/NameRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "이름을 입력하세요 (예: 김민수)"
+
+[node name="CodeRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox/StudentSection"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="LobbyOverlay/Panel/VBox/StudentSection/CodeRow"]
+custom_minimum_size = Vector2(95, 0)
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "방 코드:"
+
+[node name="CodeInput" type="LineEdit" parent="LobbyOverlay/Panel/VBox/StudentSection/CodeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "선생님 화면에 뜬 4자리 숫자 (예: 4829)"
+
+[node name="SelectRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox/StudentSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CountryOpt" type="OptionButton" parent="LobbyOverlay/Panel/VBox/StudentSection/SelectRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RoleOpt" type="OptionButton" parent="LobbyOverlay/Panel/VBox/StudentSection/SelectRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="JoinBtn" type="Button" parent="LobbyOverlay/Panel/VBox/StudentSection"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "방 코드로 입장하기"
+
+[node name="TeacherSection" type="VBoxContainer" parent="LobbyOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HostBtn" type="Button" parent="LobbyOverlay/Panel/VBox/TeacherSection"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "교사용 · 방 코드 만들기 (클라우드 중계 서버)"
+
+[node name="ServerToggleBtn" type="Button" parent="LobbyOverlay/Panel/VBox/TeacherSection"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "교사용 중계 서버 주소 설정 (펼치기/접기)"
+
+[node name="SoloBtn" type="Button" parent="LobbyOverlay/Panel/VBox"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "혼자 체험하기 (AI 경쟁국들과 무역 연습)"
+
+[node name="StatusMsg" type="Label" parent="LobbyOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.2, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "원하는 모드를 선택해 시작하세요."
+horizontal_alignment = 1
+
+[node name="BackBtn" type="Button" parent="LobbyOverlay/Panel/VBox"]
+custom_minimum_size = Vector2(140, 30)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "← 시작 화면으로"
+
+[node name="VictoryModal" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="VictoryModal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Panel" type="PanelContainer" parent="VictoryModal"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 300.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="VictoryModal/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="VictoryModal/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 22
+text = "무역 시뮬레이션 종료!"
+horizontal_alignment = 1
+
+[node name="WinnerText" type="Label" parent="VictoryModal/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.20, 0.10, 1)
+theme_override_font_sizes/font_size = 15
+text = "최우수 국가 발표"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="RestartBtn" type="Button" parent="VictoryModal/Panel/VBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "다시 플레이하기"
+
+[node name="IslandInfoModal" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="IslandInfoModal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="Panel" type="PanelContainer" parent="IslandInfoModal"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -175.0
+offset_right = 280.0
+offset_bottom = 175.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_WoodPanel")
+
+[node name="VBox" type="VBoxContainer" parent="IslandInfoModal/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TopRow" type="HBoxContainer" parent="IslandInfoModal/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BuildingTex" type="TextureRect" parent="IslandInfoModal/Panel/VBox/TopRow"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+texture = ExtResource("26_portdef")
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="IslandInfoModal/Panel/VBox/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+theme_override_font_sizes/font_size = 20
+text = "국가 정보"
+vertical_alignment = 1
+
+[node name="TraitBox" type="PanelContainer" parent="IslandInfoModal/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_DarkSlot")
+
+[node name="TraitText" type="Label" parent="IslandInfoModal/Panel/VBox/TraitBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.55, 1)
+theme_override_font_sizes/font_size = 13
+text = "고유 특성"
+autowrap_mode = 2
+
+[node name="ProdText" type="Label" parent="IslandInfoModal/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.4, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "생산/수입 정보"
+autowrap_mode = 2
+
+[node name="StatsText" type="Label" parent="IslandInfoModal/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.28, 0.16, 0.08, 1)
+theme_override_font_sizes/font_size = 13
+text = "보유 자원 및 인프라"
+autowrap_mode = 2
+
+[node name="CloseBtn" type="Button" parent="IslandInfoModal/Panel/VBox"]
+custom_minimum_size = Vector2(140, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "닫기"
