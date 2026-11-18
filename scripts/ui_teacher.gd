@@ -27,6 +27,11 @@ func _ready():
 	unlock_btn.pressed.connect(_try_unlock)
 	pw_input.text_submitted.connect(func(_t): _try_unlock())
 	pw_input.focus_entered.connect(func(): DisplayServer.window_set_ime_active(false))
+	pw_input.gui_input.connect(func(ev):
+		if DisplayServer.is_touchscreen_available() and ((ev is InputEventScreenTouch and ev.pressed) or (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT)):
+			get_viewport().set_input_as_handled()
+			get_tree().current_scene.open_numpad(pw_input, "교사 비밀번호 입력", true)
+	)
 	pw_pad_btn.pressed.connect(func():
 		SoundManager.play_click()
 		get_tree().current_scene.open_numpad(pw_input, "교사 비밀번호 입력", true)

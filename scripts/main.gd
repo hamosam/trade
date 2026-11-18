@@ -240,13 +240,20 @@ func _setup_lobby():
 		SoundManager.play_click()
 		open_numpad(lobby_code_input, "방 코드 4자리 입력", false)
 	)
+	lobby_code_input.gui_input.connect(func(ev):
+		if DisplayServer.is_touchscreen_available() and _is_tap(ev):
+			get_viewport().set_input_as_handled()
+			open_numpad(lobby_code_input, "방 코드 4자리 입력", false)
+	)
+	lobby_name_input.gui_input.connect(func(ev):
+		if OS.has_feature("web") and DisplayServer.is_touchscreen_available() and _is_tap(ev):
+			get_viewport().set_input_as_handled()
+			_prompt_web_line_edit(lobby_name_input, "이름을 입력하세요:")
+	)
 	lobby_name_web_btn.visible = OS.has_feature("web")
 	lobby_name_web_btn.pressed.connect(func():
 		SoundManager.play_click()
-		if OS.has_feature("web"):
-			var res = JavaScriptBridge.eval("window.prompt('이름을 입력하세요:', '%s') || ''" % lobby_name_input.text.replace("'", ""))
-			if res is String and res.strip_edges() != "":
-				lobby_name_input.text = res.strip_edges()
+		_prompt_web_line_edit(lobby_name_input, "이름을 입력하세요:")
 	)
 	lobby_relay_row.visible = false
 	lobby_server_toggle.pressed.connect(func():
@@ -484,6 +491,20 @@ func _on_island_clicked(c_id: String):
 		c["automation_lvl"], c["logistics_lvl"], c["tech_rnd_lvl"]
 	]
 	island_modal.visible = true
+
+func _is_tap(ev: InputEvent) -> bool:
+	if ev is InputEventScreenTouch and ev.pressed:
+		return true
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		return true
+	return false
+
+func _prompt_web_line_edit(target: LineEdit, msg: String):
+	if OS.has_feature("web"):
+		var cur = target.text.replace("'", "")
+		var res = JavaScriptBridge.eval("window.prompt('%s', '%s')" % [msg, cur])
+		if res is String:
+			target.text = res.strip_edges()
 
 func _setup_numpad():
 	for child in numpad_grid.get_children():

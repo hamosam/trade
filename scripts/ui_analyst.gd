@@ -187,6 +187,17 @@ func _update_ime_btn():
 	ime_btn.modulate = Color(0.85, 1.0, 0.85) if korean_mode else Color(1, 1, 1)
 
 func _on_input_gui_input(event: InputEvent):
+	if OS.has_feature("web") and DisplayServer.is_touchscreen_available():
+		if (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+			get_viewport().set_input_as_handled()
+			var cur = order_input.text.replace("'", "")
+			var res = JavaScriptBridge.eval("window.prompt('협상가에게 보낼 작전 지시를 입력하세요:', '%s')" % cur)
+			if res is String:
+				ime.reset()
+				ime.committed = res
+				order_input.text = res
+			return
+
 	if not (event is InputEventKey and event.pressed):
 		return
 	if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
