@@ -25,6 +25,7 @@ var is_unlocked: bool = false
 func _ready():
 	unlock_btn.pressed.connect(_try_unlock)
 	pw_input.text_submitted.connect(func(_t): _try_unlock())
+	pw_input.focus_entered.connect(func(): DisplayServer.window_set_ime_active(false))
 	btn_lock.pressed.connect(_lock_panel)
 
 	btn_shipping.pressed.connect(func(): _trigger_news(0))

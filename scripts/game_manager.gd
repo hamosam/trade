@@ -20,7 +20,12 @@ signal network_status_changed(status_text, is_connected)
 signal room_code_ready(code)
 signal roster_updated
 
-const DEFAULT_RELAY_URL: String = "wss://broker.emqx.io:8084/mqtt"
+const DEFAULT_RELAY_URL: String = "wss://mqtt.eclipseprojects.io/mqtt"
+const FALLBACK_BROKERS: Array = [
+	"wss://mqtt.eclipseprojects.io/mqtt",
+	"wss://broker.emqx.io:8084/mqtt",
+	"wss://broker.hivemq.com:8884/mqtt"
+]
 const TOPIC_PREFIX: String = "hamo_trade_2026"
 const TEACHER_PASSWORD: String = "1234"
 
@@ -36,6 +41,7 @@ var my_peer_id: int = 0
 var ws_connected: bool = false
 var ws_connecting: bool = false
 var client_joined: bool = false
+var broker_try_idx: int = 0
 var reconnect_timer: float = 0.0
 var connect_timeout: float = 0.0
 
@@ -267,6 +273,7 @@ func leave_current_session():
 func start_solo_mode(country_id: String, role_name: String):
 	mqtt.close()
 	play_mode = "solo_ai"
+	ai_fill_empty_countries = true
 	ws_connected = false
 	ws_connecting = false
 	client_joined = false
@@ -284,6 +291,7 @@ func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
 	mqtt.close()
 	ws_url = relay_url.strip_edges() if relay_url.strip_edges() != "" else DEFAULT_RELAY_URL
 	play_mode = "host"
+	ai_fill_empty_countries = false
 	room_code = str(randi_range(1000, 9999))
 	current_player_country = "iron_kingdom"
 	current_player_role = "overworld"
@@ -295,6 +303,7 @@ func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
 	ws_connected = false
 	ws_connecting = true
 	client_joined = false
+	broker_try_idx = 0
 	connect_timeout = 0.0
 
 	var err = mqtt.connect_broker(ws_url)
@@ -325,6 +334,7 @@ func join_classroom_by_code(relay_url: String, code: String, p_name: String, cou
 	ws_connected = false
 	ws_connecting = true
 	client_joined = false
+	broker_try_idx = 0
 	connect_timeout = 0.0
 
 	var err = mqtt.connect_broker(ws_url)
@@ -340,7 +350,7 @@ func _poll_websocket(delta: float):
 
 	if ws_connecting or (play_mode == "client" and ws_connected and not client_joined):
 		connect_timeout += delta
-		if connect_timeout >= 7.0:
+		if connect_timeout >= 5.0:
 			connect_timeout = 0.0
 			if play_mode == "client" and ws_connected and not client_joined:
 				mqtt.close()
@@ -349,8 +359,14 @@ func _poll_websocket(delta: float):
 				network_status_changed.emit("방 코드 '%s'를 찾을 수 없습니다! 선생님이 방을 열었는지 확인하세요." % room_code, false)
 			elif ws_connecting:
 				mqtt.close()
-				ws_connecting = false
-				network_status_changed.emit("네트워크 응답 시간 초과! 인터넷 연결을 확인하세요.", false)
+				broker_try_idx += 1
+				if ws_url == DEFAULT_RELAY_URL and broker_try_idx < FALLBACK_BROKERS.size():
+					var next_url = FALLBACK_BROKERS[broker_try_idx]
+					network_status_changed.emit("예비 중계 채널(%d)로 연결 시도 중..." % (broker_try_idx + 1), false)
+					mqtt.connect_broker(next_url)
+				else:
+					ws_connecting = false
+					network_status_changed.emit("네트워크 응답 시간 초과! 인터넷/방화벽을 확인하세요.", false)
 			return
 
 	if not ws_connected and not ws_connecting and room_code != "" and is_game_started:

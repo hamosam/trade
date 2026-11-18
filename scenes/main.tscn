@@ -1041,7 +1041,9 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(220, 36)
 layout_mode = 2
 placeholder_text = "비밀번호 입력 (기본: 1234)"
+virtual_keyboard_type = 2
 secret = true
+secret_character = "*"
 
 [node name="UnlockBtn" type="Button" parent="MainViews/TeacherView/Panel/VBox/LockBox/PwRow"]
 custom_minimum_size = Vector2(110, 36)
@@ -1560,7 +1562,7 @@ text = "중계 서버:"
 [node name="RelayInput" type="LineEdit" parent="LobbyOverlay/Panel/VBox/RelayRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "wss://broker.emqx.io:8084/mqtt"
+text = "wss://mqtt.eclipseprojects.io/mqtt"
 placeholder_text = "wss:// WebSocket MQTT 브로커 주소"
 
 [node name="StudentSection" type="VBoxContainer" parent="LobbyOverlay/Panel/VBox"]
@@ -1598,6 +1600,7 @@ text = "방 코드:"
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "선생님 화면에 뜬 4자리 숫자 (예: 4829)"
+virtual_keyboard_type = 2
 
 [node name="SelectRow" type="HBoxContainer" parent="LobbyOverlay/Panel/VBox/StudentSection"]
 layout_mode = 2
