@@ -10,7 +10,7 @@ func _ready():
 	_load_sound("news_alarm", "res://assets/audio/news_alarm.wav")
 
 func _load_sound(sound_name: String, path: String):
-	if FileAccess.file_exists(path):
+	if ResourceLoader.exists(path):
 		var s = load(path)
 		sounds[sound_name] = s
 
