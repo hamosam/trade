@@ -1560,8 +1560,8 @@ text = "중계 서버:"
 [node name="RelayInput" type="LineEdit" parent="LobbyOverlay/Panel/VBox/RelayRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "ws://127.0.0.1:8765"
-placeholder_text = "ws:// 또는 wss:// 클라우드 중계 서버 주소"
+text = "wss://broker.emqx.io:8084/mqtt"
+placeholder_text = "wss:// WebSocket MQTT 브로커 주소"
 
 [node name="StudentSection" type="VBoxContainer" parent="LobbyOverlay/Panel/VBox"]
 layout_mode = 2

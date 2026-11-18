@@ -20,26 +20,24 @@ signal network_status_changed(status_text, is_connected)
 signal room_code_ready(code)
 signal roster_updated
 
-const DEFAULT_RELAY_URL: String = "ws://127.0.0.1:8765"
+const DEFAULT_RELAY_URL: String = "wss://broker.emqx.io:8084/mqtt"
+const TOPIC_PREFIX: String = "hamo_trade_2026"
 const TEACHER_PASSWORD: String = "1234"
 
 # Mode: "solo_ai", "host", "client"
 var play_mode: String = "solo_ai"
 var is_game_started: bool = false
 
-# WebSocket Relay State
-var ws := WebSocketPeer.new()
+# Public MQTT-over-WebSocket Relay State (no private server needed!)
+var mqtt := MqttWsClient.new()
 var ws_url: String = DEFAULT_RELAY_URL
 var room_code: String = ""
 var my_peer_id: int = 0
 var ws_connected: bool = false
 var ws_connecting: bool = false
-var pending_ws_action: String = "" # "create_room", "rejoin_host", "join_room"
-var heartbeat_timer: float = 0.0
+var client_joined: bool = false
 var reconnect_timer: float = 0.0
 var connect_timeout: float = 0.0
-var local_relay_pid: int = -1
-var local_relay_wait: float = 0.0
 
 # Game loop variables
 var game_time_left: float = 900.0 # 15 minutes
@@ -191,6 +189,9 @@ var news_timer: float = 0.0
 var next_news_interval: float = 95.0
 
 func _ready():
+	mqtt.mqtt_connected.connect(_on_mqtt_connected)
+	mqtt.mqtt_disconnected.connect(_on_mqtt_disconnected)
+	mqtt.mqtt_message.connect(_on_mqtt_message)
 	if OS.has_feature("web"):
 		# Prevent browser tab throttling sleep as much as possible
 		JavaScriptBridge.eval("if(navigator.wakeLock){navigator.wakeLock.request('screen').catch(()=>{});}")
@@ -244,20 +245,16 @@ func _process(delta):
 			_run_empty_country_ai()
 
 # ========================================================
-# WEBSOCKET RELAY & ROOM CODE SYSTEM
+# MQTT WEBSOCKET RELAY & ROOM CODE SYSTEM (Zero-Server!)
 # ========================================================
 func _exit_tree():
-	if local_relay_pid > 0:
-		OS.kill(local_relay_pid)
-		local_relay_pid = -1
+	mqtt.close()
 
 func leave_current_session():
-	ws.close()
-	if local_relay_pid > 0:
-		OS.kill(local_relay_pid)
-		local_relay_pid = -1
+	mqtt.close()
 	ws_connected = false
 	ws_connecting = false
+	client_joined = false
 	is_game_running = false
 	is_game_started = false
 	room_code = ""
@@ -268,10 +265,11 @@ func leave_current_session():
 	network_status_changed.emit("준비 중", false)
 
 func start_solo_mode(country_id: String, role_name: String):
-	ws.close()
+	mqtt.close()
 	play_mode = "solo_ai"
 	ws_connected = false
 	ws_connecting = false
+	client_joined = false
 	room_code = ""
 	current_player_country = country_id
 	current_player_role = role_name
@@ -283,9 +281,10 @@ func start_solo_mode(country_id: String, role_name: String):
 	network_status_changed.emit("혼자 체험 모드 (AI 경쟁국 가동)", true)
 
 func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
-	ws.close()
+	mqtt.close()
 	ws_url = relay_url.strip_edges() if relay_url.strip_edges() != "" else DEFAULT_RELAY_URL
 	play_mode = "host"
+	room_code = str(randi_range(1000, 9999))
 	current_player_country = "iron_kingdom"
 	current_player_role = "overworld"
 	lock_student_role = false
@@ -293,28 +292,17 @@ func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
 	is_game_started = true
 	is_game_running = false
 	connected_players.clear()
-	pending_ws_action = "create_room"
 	ws_connected = false
 	ws_connecting = true
+	client_joined = false
 	connect_timeout = 0.0
-	local_relay_wait = 0.0
 
-	# 로컬 주소(127.0.0.1 / localhost) 사용 시 데스크톱에서 중계 서버 자동 실행 시도
-	if not OS.has_feature("web") and (ws_url.contains("127.0.0.1") or ws_url.contains("localhost")):
-		if local_relay_pid <= 0 and FileAccess.file_exists("res://relay_server/server.py"):
-			var py_script = ProjectSettings.globalize_path("res://relay_server/server.py")
-			local_relay_pid = OS.create_process("python", [py_script])
-			if local_relay_pid > 0:
-				local_relay_wait = 0.6
-				network_status_changed.emit("로컬 중계 서버 시작 및 방 생성 중...", false)
-				return true
-
-	var err = ws.connect_to_url(ws_url)
+	var err = mqtt.connect_broker(ws_url)
 	if err != OK:
 		ws_connecting = false
-		network_status_changed.emit("중계 서버 연결 실패 (%s)" % ws_url, false)
+		network_status_changed.emit("연결 실패 (%s)" % ws_url, false)
 		return false
-	network_status_changed.emit("중계 서버에 교실 방 생성 중...", false)
+	network_status_changed.emit("교실 방 [%s] 여는 중..." % room_code, false)
 	return true
 
 func join_classroom_by_code(relay_url: String, code: String, p_name: String, country_id: String, role_name: String) -> bool:
@@ -322,10 +310,11 @@ func join_classroom_by_code(relay_url: String, code: String, p_name: String, cou
 	if clean_code == "":
 		network_status_changed.emit("방 코드를 입력해주세요.", false)
 		return false
-	ws.close()
+	mqtt.close()
 	ws_url = relay_url.strip_edges() if relay_url.strip_edges() != "" else DEFAULT_RELAY_URL
 	play_mode = "client"
 	room_code = clean_code
+	my_peer_id = randi_range(100000, 999999)
 	student_name = p_name.strip_edges() if p_name.strip_edges() != "" else "학생"
 	current_player_country = country_id
 	student_assigned_role = role_name
@@ -333,139 +322,95 @@ func join_classroom_by_code(relay_url: String, code: String, p_name: String, cou
 	lock_student_role = true
 	lock_country_switch = true
 	is_game_started = true
-	pending_ws_action = "join_room"
 	ws_connected = false
 	ws_connecting = true
-	var err = ws.connect_to_url(ws_url)
+	client_joined = false
+	connect_timeout = 0.0
+
+	var err = mqtt.connect_broker(ws_url)
 	if err != OK:
 		ws_connecting = false
-		network_status_changed.emit("중계 서버 연결 실패 (%s)" % ws_url, false)
+		network_status_changed.emit("연결 실패 (%s)" % ws_url, false)
 		return false
 	network_status_changed.emit("방 [%s]에 입장 중..." % clean_code, false)
 	return true
 
 func _poll_websocket(delta: float):
-	if local_relay_wait > 0.0:
-		local_relay_wait -= delta
-		if local_relay_wait <= 0.0:
-			ws.connect_to_url(ws_url)
-		return
+	mqtt.poll(delta)
 
-	ws.poll()
-	var state = ws.get_ready_state()
-
-	if state == WebSocketPeer.STATE_CONNECTING:
+	if ws_connecting or (play_mode == "client" and ws_connected and not client_joined):
 		connect_timeout += delta
-		if connect_timeout >= 6.0:
-			ws.close()
-			ws_connecting = false
-			network_status_changed.emit("중계 서버 응답 시간 초과! 서버가 켜져 있는지 확인하세요.", false)
+		if connect_timeout >= 7.0:
+			connect_timeout = 0.0
+			if play_mode == "client" and ws_connected and not client_joined:
+				mqtt.close()
+				ws_connected = false
+				ws_connecting = false
+				network_status_changed.emit("방 코드 '%s'를 찾을 수 없습니다! 선생님이 방을 열었는지 확인하세요." % room_code, false)
+			elif ws_connecting:
+				mqtt.close()
+				ws_connecting = false
+				network_status_changed.emit("네트워크 응답 시간 초과! 인터넷 연결을 확인하세요.", false)
 			return
 
-	if state == WebSocketPeer.STATE_OPEN:
-		connect_timeout = 0.0
-		if not ws_connected:
-			ws_connected = true
-			ws_connecting = false
-			_on_ws_opened()
-
-		heartbeat_timer += delta
-		if heartbeat_timer >= 5.0:
-			heartbeat_timer = 0.0
-			_send_heartbeat()
-
-		while ws.get_available_packet_count() > 0:
-			var raw = ws.get_packet().get_string_from_utf8()
-			var parsed = JSON.parse_string(raw)
-			if parsed is Dictionary:
-				_handle_ws_message(parsed)
-
-	elif state == WebSocketPeer.STATE_CLOSED:
-		if ws_connected:
-			ws_connected = false
-			ws_connecting = false
-			network_status_changed.emit("연결 끊김 — 자동 재연결 시도 중...", false)
-		elif ws_connecting:
-			ws_connecting = false
-			if room_code == "":
-				network_status_changed.emit("중계 서버에 연결할 수 없습니다! (방_중계서버_실행.bat 확인)", false)
-				return
-		if room_code != "":
+	if not ws_connected and not ws_connecting and room_code != "" and is_game_started:
+		if play_mode == "host" or client_joined:
 			reconnect_timer += delta
 			if reconnect_timer >= 3.0:
 				reconnect_timer = 0.0
-				pending_ws_action = "rejoin_host" if play_mode == "host" else "join_room"
 				ws_connecting = true
-				ws.connect_to_url(ws_url)
+				connect_timeout = 0.0
+				mqtt.connect_broker(ws_url)
 
-func _on_ws_opened():
-	if pending_ws_action == "create_room":
-		_ws_send({"type": "create_room"})
-	elif pending_ws_action == "rejoin_host":
-		_ws_send({"type": "rejoin_host", "code": room_code})
-	elif pending_ws_action == "join_room":
-		_ws_send({"type": "join_room", "code": room_code})
-	pending_ws_action = ""
-
-func _send_heartbeat():
-	if ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
-		_ws_send({"type": "ping"})
-
-func _ws_send(obj: Dictionary):
-	if ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
-		ws.send_text(JSON.stringify(obj))
-
-func _relay_to_all(payload: Dictionary):
+func _on_mqtt_connected():
+	ws_connected = true
+	ws_connecting = false
+	connect_timeout = 0.0
 	if play_mode == "host":
-		_ws_send({"type": "relay", "target": "all", "payload": payload})
-
-func _relay_to_peer(peer_id: int, payload: Dictionary):
-	if play_mode == "host":
-		_ws_send({"type": "relay", "target": peer_id, "payload": payload})
-
-func _relay_to_host(payload: Dictionary):
-	if play_mode == "client":
-		_ws_send({"type": "relay", "payload": payload})
-
-func _handle_ws_message(msg: Dictionary):
-	var mtype = msg.get("type", "")
-	if mtype == "pong":
-		return
-	elif mtype == "error":
-		network_status_changed.emit(msg.get("message", "연결 오류"), false)
-	elif mtype == "room_created":
-		room_code = str(msg.get("code", ""))
+		mqtt.subscribe("%s/%s/to_host" % [TOPIC_PREFIX, room_code])
 		is_game_running = true
 		room_code_ready.emit(room_code)
 		role_changed.emit(current_player_country, current_player_role)
 		network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
-	elif mtype == "joined":
-		my_peer_id = int(msg.get("peer_id", 0))
-		network_status_changed.emit("방 [%s] 연결 완료!" % room_code, true)
+	elif play_mode == "client":
+		mqtt.subscribe("%s/%s/to_clients" % [TOPIC_PREFIX, room_code])
 		_relay_to_host({"cmd": "register_student", "name": student_name, "country": current_player_country, "role": current_player_role})
-		role_changed.emit(current_player_country, current_player_role)
-	elif mtype == "peer_joined":
-		var pid = int(msg.get("peer_id", 0))
-		_relay_to_peer(pid, {
-			"cmd": "full_sync",
-			"countries": _serialize_countries(),
-			"trades": _serialize_trades(),
-			"event": active_event,
-			"t": game_time_left,
-			"running": is_game_running
-		})
-	elif mtype == "peer_left":
-		var pid_str = str(int(msg.get("peer_id", 0)))
-		if connected_players.has(pid_str):
-			connected_players.erase(pid_str)
-			_relay_to_all({"cmd": "sync_roster", "roster": connected_players})
-			network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
-			roster_updated.emit()
-	elif mtype == "relay":
-		var from_pid = int(msg.get("from", 0))
-		var payload = msg.get("payload", {})
+
+func _on_mqtt_disconnected():
+	if ws_connected:
+		ws_connected = false
+		ws_connecting = false
+		network_status_changed.emit("연결 끊김 — 자동 재연결 시도 중...", false)
+	elif ws_connecting:
+		ws_connecting = false
+		network_status_changed.emit("네트워크에 연결할 수 없습니다.", false)
+
+func _on_mqtt_message(_topic: String, msg_str: String):
+	var parsed = JSON.parse_string(msg_str)
+	if parsed is Dictionary:
+		var from_pid = int(parsed.get("from", 0))
+		var target = parsed.get("target", "all")
+		if play_mode == "client" and target is int and target != my_peer_id:
+			return
+		var payload = parsed.get("payload", {})
 		if payload is Dictionary:
 			_handle_relay_payload(from_pid, payload)
+
+func _send_heartbeat():
+	if ws_connected:
+		mqtt._send_ping()
+
+func _relay_to_all(payload: Dictionary):
+	if play_mode == "host" and ws_connected:
+		mqtt.publish("%s/%s/to_clients" % [TOPIC_PREFIX, room_code], JSON.stringify({"from": 1, "target": "all", "payload": payload}))
+
+func _relay_to_peer(peer_id: int, payload: Dictionary):
+	if play_mode == "host" and ws_connected:
+		mqtt.publish("%s/%s/to_clients" % [TOPIC_PREFIX, room_code], JSON.stringify({"from": 1, "target": peer_id, "payload": payload}))
+
+func _relay_to_host(payload: Dictionary):
+	if play_mode == "client" and ws_connected:
+		mqtt.publish("%s/%s/to_host" % [TOPIC_PREFIX, room_code], JSON.stringify({"from": my_peer_id, "payload": payload}))
 
 func _handle_relay_payload(from_pid: int, p: Dictionary):
 	var cmd = p.get("cmd", "")
@@ -477,6 +422,14 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 					"country": p.get("country", "iron_kingdom"),
 					"role": p.get("role", "diplomat")
 				}
+				_relay_to_peer(from_pid, {
+					"cmd": "full_sync",
+					"countries": _serialize_countries(),
+					"trades": _serialize_trades(),
+					"event": active_event,
+					"t": game_time_left,
+					"running": is_game_running
+				})
 				_relay_to_all({"cmd": "sync_roster", "roster": connected_players})
 				network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
 				roster_updated.emit()
@@ -525,6 +478,10 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 				active_event = p.get("event", active_event)
 				game_time_left = float(p.get("t", 900.0))
 				is_game_running = bool(p.get("running", true))
+				if not client_joined:
+					client_joined = true
+					role_changed.emit(current_player_country, current_player_role)
+					network_status_changed.emit("방 [%s] 연결 완료!" % room_code, true)
 				all_data_changed.emit()
 			"sync_timer":
 				game_time_left = float(p.get("t", game_time_left))
