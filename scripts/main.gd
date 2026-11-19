@@ -49,6 +49,7 @@ extends Control
 @onready var numpad_grid = $NumpadModal/Panel/VBox/Grid
 
 var numpad_target: LineEdit = null
+var numpad_spin_target: SpinBox = null
 var numpad_value: String = ""
 var numpad_secret: bool = false
 
@@ -74,6 +75,7 @@ var numpad_secret: bool = false
 @onready var lobby_role_opt = $LobbyOverlay/Panel/VBox/StudentSection/SelectRow/RoleOpt
 @onready var lobby_join_btn = $LobbyOverlay/Panel/VBox/StudentSection/JoinBtn
 @onready var lobby_host_btn = $LobbyOverlay/Panel/VBox/TeacherSection/HostBtn
+@onready var lobby_resume_host_btn = $LobbyOverlay/Panel/VBox/TeacherSection/ResumeHostBtn
 @onready var lobby_solo_btn = $LobbyOverlay/Panel/VBox/SoloBtn
 @onready var lobby_msg_lbl = $LobbyOverlay/Panel/VBox/StatusMsg
 
@@ -102,7 +104,7 @@ var role_guides: Dictionary = {
 	"technician": {
 		"title": "기술·제조부 장관 (생산 총괄)",
 		"portrait": "res://assets/sprites/portraits/portrait_technician.png",
-		"speech": "철광석, 식량, 에너지, 반도체가 1개씩 모이면 제 버튼으로 스마트폰을 조립할 수 있습니다!"
+		"speech": "철광석, 식량, 에너지, 반도체가 필요 수량만큼 모이면 제 버튼으로 스마트폰을 조립할 수 있습니다!"
 	},
 	"analyst": {
 		"title": "경제기획원 (정보 분석가)",
@@ -156,7 +158,8 @@ func _ready():
 	victory_restart_btn.pressed.connect(func():
 		SoundManager.play_click()
 		victory_modal.visible = false
-		GameManager.admin_reset_game()
+		if GameManager.play_mode != "client":
+			GameManager.admin_reset_game()
 	)
 
 	view_map.island_clicked.connect(_on_island_clicked)
@@ -297,6 +300,17 @@ func _setup_lobby():
 		SoundManager.play_click()
 		var r_url = lobby_relay_input.text.strip_edges()
 		GameManager.start_teacher_host(r_url)
+	)
+	var saved_code = GameManager.get_saved_host_code()
+	lobby_resume_host_btn.visible = (saved_code != "")
+	if saved_code != "":
+		lobby_resume_host_btn.text = "교사용 · 이전 방 이어하기 (%s)" % saved_code
+	lobby_resume_host_btn.pressed.connect(func():
+		SoundManager.play_click()
+		var sc = GameManager.get_saved_host_code()
+		if sc != "":
+			var r_url = lobby_relay_input.text.strip_edges()
+			GameManager.start_teacher_host(r_url, sc)
 	)
 
 	lobby_solo_btn.pressed.connect(func():
@@ -455,6 +469,7 @@ func _on_breaking_news(news: Dictionary):
 func _on_game_ended(winner_id: String):
 	var w = GameManager.countries[winner_id]
 	victory_text.text = "최우수 무역 국가: %s\n스마트폰: %d대 조립  |  보유 자산: %d G\n성공적인 글로벌 무역과 부품 협력을 달성했습니다!" % [w["name"], w["smartphones"], w["gold"]]
+	victory_restart_btn.text = "닫기" if GameManager.play_mode == "client" else "새 게임 시작"
 	victory_modal.visible = true
 
 func _on_island_clicked(c_id: String):
@@ -520,7 +535,9 @@ func _setup_numpad():
 				if numpad_value.length() > 0:
 					numpad_value = numpad_value.substr(0, numpad_value.length() - 1)
 			elif k == "확인":
-				if numpad_target != null:
+				if numpad_spin_target != null:
+					numpad_spin_target.value = clamp(float(numpad_value if numpad_value != "" else "0"), numpad_spin_target.min_value, numpad_spin_target.max_value)
+				elif numpad_target != null:
 					numpad_target.text = numpad_value
 				numpad_modal.visible = false
 				return
@@ -533,8 +550,18 @@ func _setup_numpad():
 
 func open_numpad(target: LineEdit, title_str: String, is_secret: bool = false):
 	numpad_target = target
+	numpad_spin_target = null
 	numpad_value = target.text
 	numpad_secret = is_secret
+	numpad_title.text = title_str
+	_refresh_numpad_display()
+	numpad_modal.visible = true
+
+func open_numpad_for_spinbox(spin: SpinBox, title_str: String):
+	numpad_target = null
+	numpad_spin_target = spin
+	numpad_value = str(int(spin.value))
+	numpad_secret = false
 	numpad_title.text = title_str
 	_refresh_numpad_display()
 	numpad_modal.visible = true

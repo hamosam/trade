@@ -45,7 +45,10 @@ var broker_try_idx: int = 0
 var reconnect_timer: float = 0.0
 var connect_timeout: float = 0.0
 var host_keepalive_timer: float = 0.0
+var student_hb_timer: float = 0.0
+var roster_prune_timer: float = 0.0
 var host_has_started: bool = false
+var last_wall_sec: float = 0.0
 
 # Game loop variables
 var game_time_left: float = 900.0 # 15 minutes
@@ -187,7 +190,7 @@ var breaking_news_list: Array = [
 	},
 	{
 		"title": "자원 섬 고대 유적 발견",
-		"description": "섬 지하에서 보물 창고가 발견되어 모든 국가에 전 자원 +5개가 지급됩니다!",
+		"description": "섬 지하에서 보물 창고가 발견되어 모든 국가에 자원(철·식량·에너지 +5, 반도체 +3)과 50G가 지급됩니다!",
 		"ship_speed_mult": 1.2, "tariff_fee": 0, "food_mult": 1.2, "semi_mult": 1.2, "energy_mult": 1.2, "iron_mult": 1.2, "phone_score_mult": 1.2,
 		"special_instant": "bonus_resources"
 	}
@@ -216,22 +219,36 @@ func _process(delta):
 		_poll_websocket(delta)
 
 	if not is_game_running:
+		last_wall_sec = Time.get_unix_time_from_system()
 		return
 
 	if play_mode == "client":
 		return
 
-	game_time_left -= delta
+	# Use wall-clock elapsed time so browser background tab throttling doesn't freeze production/timer!
+	var now_sec = Time.get_unix_time_from_system()
+	var step = delta
+	if last_wall_sec > 0.0:
+		var wall_diff = now_sec - last_wall_sec
+		if wall_diff > delta + 0.5:
+			step = min(wall_diff, 30.0)
+	last_wall_sec = now_sec
+
+	var prev_sec = int(game_time_left)
+	game_time_left -= step
+	var ended_now = false
 	if game_time_left <= 0:
 		game_time_left = 0
 		is_game_running = false
+		ended_now = true
 		_check_victory()
 	timer_updated.emit(game_time_left)
 
-	if play_mode == "host" and int(game_time_left) != int(game_time_left + delta):
+	if play_mode == "host" and (ended_now or int(game_time_left) != prev_sec):
 		_relay_to_all({"cmd": "sync_timer", "t": game_time_left, "running": is_game_running})
+		_save_host_session()
 
-	production_timer += delta
+	production_timer += step
 	if production_timer >= production_interval:
 		production_timer = 0.0
 		_tick_production()
@@ -289,18 +306,23 @@ func start_solo_mode(country_id: String, role_name: String):
 	role_changed.emit(country_id, role_name)
 	network_status_changed.emit("혼자 체험 모드 (AI 경쟁국 가동)", true)
 
-func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
+func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL, resume_code: String = "") -> bool:
 	mqtt.close()
 	ws_url = relay_url.strip_edges() if relay_url.strip_edges() != "" else DEFAULT_RELAY_URL
 	play_mode = "host"
 	ai_fill_empty_countries = false
-	room_code = str(randi_range(1000, 9999))
+	if resume_code != "":
+		room_code = resume_code
+		_load_host_session_data()
+	else:
+		room_code = str(randi_range(1000, 9999))
 	current_player_country = "iron_kingdom"
 	current_player_role = "overworld"
 	lock_student_role = false
 	lock_country_switch = false
 	is_game_started = true
 	is_game_running = false
+	last_wall_sec = Time.get_unix_time_from_system()
 	connected_players.clear()
 	ws_connected = false
 	ws_connecting = true
@@ -316,6 +338,48 @@ func start_teacher_host(relay_url: String = DEFAULT_RELAY_URL) -> bool:
 		return false
 	network_status_changed.emit("교실 방 [%s] 여는 중..." % room_code, false)
 	return true
+
+func get_saved_host_code() -> String:
+	var raw = ""
+	if OS.has_feature("web"):
+		raw = str(JavaScriptBridge.eval("localStorage.getItem('hamo_host_session') || ''"))
+	elif FileAccess.file_exists("user://host_session.json"):
+		var f = FileAccess.open("user://host_session.json", FileAccess.READ)
+		if f:
+			raw = f.get_as_text()
+	if raw != "":
+		var d = JSON.parse_string(raw)
+		if d is Dictionary and d.has("code"):
+			return str(d["code"])
+	return ""
+
+func _save_host_session():
+	if play_mode != "host" or room_code == "":
+		return
+	var payload = JSON.stringify({"code": room_code, "countries": _serialize_countries(), "t": game_time_left})
+	if OS.has_feature("web"):
+		var esc = payload.replace("\\", "\\\\").replace("'", "\\'")
+		JavaScriptBridge.eval("localStorage.setItem('hamo_host_session', '%s');" % esc)
+	else:
+		var f = FileAccess.open("user://host_session.json", FileAccess.WRITE)
+		if f:
+			f.store_string(payload)
+
+func _load_host_session_data():
+	var raw = ""
+	if OS.has_feature("web"):
+		raw = str(JavaScriptBridge.eval("localStorage.getItem('hamo_host_session') || ''"))
+	elif FileAccess.file_exists("user://host_session.json"):
+		var f = FileAccess.open("user://host_session.json", FileAccess.READ)
+		if f:
+			raw = f.get_as_text()
+	if raw != "":
+		var d = JSON.parse_string(raw)
+		if d is Dictionary:
+			if d.has("countries"):
+				_apply_serialized_countries(d["countries"])
+			if d.has("t"):
+				game_time_left = float(d["t"])
 
 func join_classroom_by_code(relay_url: String, code: String, p_name: String, country_id: String, role_name: String) -> bool:
 	var clean_code = code.strip_edges()
@@ -387,6 +451,27 @@ func _poll_websocket(delta: float):
 		if host_keepalive_timer >= 12.0:
 			host_keepalive_timer = 0.0
 			_relay_to_all({"cmd": "keepalive"})
+		roster_prune_timer += delta
+		if roster_prune_timer >= 10.0:
+			roster_prune_timer = 0.0
+			_prune_inactive_students()
+	elif ws_connected and play_mode == "client" and client_joined:
+		student_hb_timer += delta
+		if student_hb_timer >= 8.0:
+			student_hb_timer = 0.0
+			_relay_to_host({"cmd": "student_heartbeat", "name": student_name, "country": current_player_country, "role": student_assigned_role})
+
+func _prune_inactive_students():
+	var now = Time.get_unix_time_from_system()
+	var removed = false
+	for k in connected_players.keys():
+		if now - float(connected_players[k].get("last_seen", now)) > 28.0:
+			connected_players.erase(k)
+			removed = true
+	if removed:
+		_relay_to_all({"cmd": "sync_roster", "roster": connected_players})
+		network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
+		roster_updated.emit()
 
 func _on_mqtt_connected():
 	ws_connected = true
@@ -397,12 +482,21 @@ func _on_mqtt_connected():
 		if not host_has_started:
 			host_has_started = true
 			is_game_running = true
+		_save_host_session()
+		_relay_to_all({
+			"cmd": "full_sync",
+			"countries": _serialize_countries(),
+			"trades": _serialize_trades(),
+			"event": active_event,
+			"t": game_time_left,
+			"running": is_game_running
+		})
 		room_code_ready.emit(room_code)
 		role_changed.emit(current_player_country, current_player_role)
 		network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
 	elif play_mode == "client":
 		mqtt.subscribe("%s/%s/to_clients" % [TOPIC_PREFIX, room_code])
-		_relay_to_host({"cmd": "register_student", "name": student_name, "country": current_player_country, "role": current_player_role})
+		_relay_to_host({"cmd": "register_student", "name": student_name, "country": current_player_country, "role": student_assigned_role})
 
 func _on_mqtt_disconnected():
 	if ws_connected:
@@ -418,7 +512,7 @@ func _on_mqtt_message(_topic: String, msg_str: String):
 	if parsed is Dictionary:
 		var from_pid = int(parsed.get("from", 0))
 		var target = parsed.get("target", "all")
-		if play_mode == "client" and target is int and target != my_peer_id:
+		if play_mode == "client" and not (target is String) and int(target) != my_peer_id:
 			return
 		var payload = parsed.get("payload", {})
 		if payload is Dictionary:
@@ -445,10 +539,14 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 	if play_mode == "host":
 		match cmd:
 			"register_student":
-				connected_players[str(from_pid)] = {
-					"name": p.get("name", "학생"),
-					"country": p.get("country", "iron_kingdom"),
-					"role": p.get("role", "diplomat")
+				var s_name = str(p.get("name", "학생"))
+				var s_country = str(p.get("country", "iron_kingdom"))
+				var s_uid = str(from_pid)
+				connected_players[s_uid] = {
+					"name": s_name,
+					"country": s_country,
+					"role": p.get("role", "diplomat"),
+					"last_seen": Time.get_unix_time_from_system()
 				}
 				_relay_to_peer(from_pid, {
 					"cmd": "full_sync",
@@ -461,10 +559,18 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 				_relay_to_all({"cmd": "sync_roster", "roster": connected_players})
 				network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
 				roster_updated.emit()
+			"student_heartbeat":
+				var s_name = str(p.get("name", "학생"))
+				var s_country = str(p.get("country", "iron_kingdom"))
+				var s_uid = str(from_pid)
+				connected_players[s_uid] = {
+					"name": s_name,
+					"country": s_country,
+					"role": p.get("role", "diplomat"),
+					"last_seen": Time.get_unix_time_from_system()
+				}
 			"req_assemble":
 				_do_assemble_smartphone(p.get("country_id", ""), bool(p.get("is_perfect", false)))
-			"req_manual_gather":
-				_do_manual_gather(p.get("country_id", ""))
 			"req_convert_res":
 				_do_convert_resource(p.get("country_id", ""), p.get("from_res", ""), p.get("to_res", ""))
 			"send_team_order":
@@ -540,6 +646,19 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 				_on_private_chat_received(p.get("from_id", ""), p.get("to_id", ""), p.get("msg", ""))
 			"team_order":
 				_on_team_order_received(p.get("country_id", ""), p.get("order_text", ""))
+			"game_ended":
+				is_game_running = false
+				game_time_left = 0.0
+				timer_updated.emit(0.0)
+				game_ended.emit(p.get("winner", "iron_kingdom"))
+			"game_reset":
+				is_game_running = true
+				_reset_world_state()
+				_apply_serialized_countries(p.get("countries", {}))
+				_apply_serialized_trades(p.get("trades", {}))
+				game_time_left = float(p.get("t", 900.0))
+				timer_updated.emit(game_time_left)
+				all_data_changed.emit()
 
 func _serialize_countries() -> Dictionary:
 	var out = {}
@@ -631,7 +750,9 @@ func _run_ai_trade_step():
 	for tid in pending_trades.keys():
 		var t = pending_trades[tid]
 		if t["from_id"] == current_player_country and t["to_id"] in ai_keys:
-			if t["offer_res"] != "none" or t["offer_gold"] > 0:
+			var offer_val = (int(t["offer_qty"]) * 20 if t["offer_res"] != "none" else 0) + int(t["offer_gold"])
+			var req_val = (int(t["request_qty"]) * 20 if t["request_res"] != "none" else 0) + int(t["request_gold"])
+			if offer_val > 0 and offer_val >= int(req_val * 0.75):
 				_do_accept_trade(tid)
 
 	# 2. AI sends varied trade proposals (2~8 units or gold) to the player
@@ -648,7 +769,6 @@ func _run_ai_trade_step():
 				propose_trade(from_ai, current_player_country, "none", 0, req_res, qty, qty * 18, 0)
 			else:
 				propose_trade(from_ai, current_player_country, offer_res, qty, req_res, qty, 0, 0)
-			return
 
 	var a = ai_keys[randi() % ai_keys.size()]
 	var b = ai_keys[randi() % ai_keys.size()]
@@ -720,13 +840,22 @@ func set_role(country_id: String, role_name: String):
 # ========================================================
 # SMARTPHONE ASSEMBLY
 # ========================================================
+func get_smartphone_req_amount(country_id: String) -> int:
+	if not countries.has(country_id):
+		return 5
+	var built = int(countries[country_id].get("smartphones", 0))
+	return 5 + int(built / 5) * 5
+
 func can_assemble_smartphone(country_id: String) -> bool:
 	if not countries.has(country_id):
 		return false
 	var c = countries[country_id]
-	return c["iron"] >= 1 and c["food"] >= 1 and c["energy"] >= 1 and c["semiconductor"] >= 1
+	var req = get_smartphone_req_amount(country_id)
+	return c["iron"] >= req and c["food"] >= req and c["energy"] >= req and c["semiconductor"] >= req
 
 func assemble_smartphone(country_id: String, is_perfect: bool = false) -> bool:
+	if not can_assemble_smartphone(country_id):
+		return false
 	if play_mode == "client":
 		_relay_to_host({"cmd": "req_assemble", "country_id": country_id, "is_perfect": is_perfect})
 		return true
@@ -736,10 +865,11 @@ func _do_assemble_smartphone(country_id: String, is_perfect: bool = false) -> bo
 	if not can_assemble_smartphone(country_id):
 		return false
 	var c = countries[country_id]
-	c["iron"] -= 1
-	c["food"] -= 1
-	c["energy"] -= 1
-	c["semiconductor"] -= 1
+	var req = get_smartphone_req_amount(country_id)
+	c["iron"] -= req
+	c["food"] -= req
+	c["energy"] -= req
+	c["semiconductor"] -= req
 	c["smartphones"] += 1
 
 	var base_score = 100
@@ -764,26 +894,12 @@ func _do_assemble_smartphone(country_id: String, is_perfect: bool = false) -> bo
 		_relay_to_all({"cmd": "notify_assemble", "country_id": country_id, "count": c["smartphones"]})
 	return true
 
-func manual_gather(country_id: String) -> String:
-	var res_key = _get_specialty_res(country_id)
-	if play_mode == "client":
-		_relay_to_host({"cmd": "req_manual_gather", "country_id": country_id})
-		return res_key
-	return _do_manual_gather(country_id)
-
-func _do_manual_gather(country_id: String) -> String:
-	if not countries.has(country_id):
-		return ""
-	var res_key = _get_specialty_res(country_id)
-	countries[country_id][res_key] += 2
-	SoundManager.play_coin()
-	country_data_changed.emit(country_id)
-	if play_mode == "host":
-		_relay_to_all({"cmd": "sync_countries", "countries": _serialize_countries()})
-	return res_key
-
 func convert_resource(country_id: String, from_res: String, to_res: String) -> bool:
-	if from_res == to_res or from_res == "" or to_res == "":
+	if not countries.has(country_id) or from_res == to_res or from_res == "" or to_res == "":
+		return false
+	var c = countries[country_id]
+	var req_amt = 3 if country_id == "energy_base" else 4
+	if c.get("converts_left", 0) <= 0 or c.get(from_res, 0) < req_amt:
 		return false
 	if play_mode == "client":
 		_relay_to_host({"cmd": "req_convert_res", "country_id": country_id, "from_res": from_res, "to_res": to_res})
@@ -828,6 +944,11 @@ func get_upgrade_cost(country_id: String, upgrade_type: String) -> int:
 	return countries[country_id][upgrade_type + "_lvl"] * 120
 
 func buy_upgrade(country_id: String, upgrade_type: String) -> bool:
+	if not countries.has(country_id):
+		return false
+	var c = countries[country_id]
+	if c[upgrade_type + "_lvl"] >= 5 or c["gold"] < get_upgrade_cost(country_id, upgrade_type):
+		return false
 	if play_mode == "client":
 		_relay_to_host({"cmd": "req_upgrade", "country_id": country_id, "upgrade_type": upgrade_type})
 		return true
@@ -865,6 +986,11 @@ func get_era_upgrade_cost(country_id: String) -> int:
 	return 0
 
 func upgrade_era(country_id: String) -> bool:
+	if not countries.has(country_id):
+		return false
+	var c = countries[country_id]
+	if c.get("era_lvl", 0) >= 2 or c["gold"] < get_era_upgrade_cost(country_id):
+		return false
 	if play_mode == "client":
 		_relay_to_host({"cmd": "req_upgrade_era", "country_id": country_id})
 		return true
@@ -900,10 +1026,15 @@ func has_pending_trade_between(from_id: String, to_id: String) -> bool:
 	return false
 
 func propose_trade(from_id: String, to_id: String, offer_res: String, offer_qty: int, request_res: String, request_qty: int, offer_gold: int, request_gold: int) -> int:
+	if from_id == to_id or not countries.has(from_id) or not countries.has(to_id):
+		return -3
 	if (offer_res == "none" and offer_gold <= 0) or (request_res == "none" and request_gold <= 0):
 		return -3
 	if has_pending_trade_between(from_id, to_id):
 		return -2
+	var from_c = countries[from_id]
+	if (offer_res != "none" and from_c[offer_res] < offer_qty) or from_c["gold"] < offer_gold:
+		return -1
 	if play_mode == "client":
 		_relay_to_host({
 			"cmd": "req_propose_trade", "from_id": from_id, "to_id": to_id,
@@ -941,6 +1072,15 @@ func _do_propose_trade(from_id: String, to_id: String, offer_res: String, offer_
 	return trade_id
 
 func accept_trade(trade_id: int) -> bool:
+	if not pending_trades.has(trade_id):
+		return false
+	var trade = pending_trades[trade_id]
+	var from_c = countries[trade["from_id"]]
+	var to_c = countries[trade["to_id"]]
+	if (trade["offer_res"] != "none" and from_c[trade["offer_res"]] < trade["offer_qty"]) or from_c["gold"] < trade["offer_gold"]:
+		return false
+	if (trade["request_res"] != "none" and to_c[trade["request_res"]] < trade["request_qty"]) or to_c["gold"] < trade["request_gold"]:
+		return false
 	if play_mode == "client":
 		_relay_to_host({"cmd": "req_accept_trade", "trade_id": trade_id})
 		return true
@@ -1126,12 +1266,34 @@ func _reset_world_state():
 	game_reset.emit()
 	all_data_changed.emit()
 
+func set_game_running(running: bool):
+	if play_mode == "client":
+		return
+	is_game_running = running
+	if play_mode == "host":
+		_relay_to_all({"cmd": "sync_timer", "t": game_time_left, "running": is_game_running})
+
+func add_game_time(secs: float):
+	if play_mode == "client":
+		return
+	game_time_left += secs
+	timer_updated.emit(game_time_left)
+	if play_mode == "host":
+		_relay_to_all({"cmd": "sync_timer", "t": game_time_left, "running": is_game_running})
+
 func admin_reset_game():
+	if play_mode == "client":
+		return
 	is_game_running = true
 	_reset_world_state()
+	timer_updated.emit(game_time_left)
 	if play_mode == "host":
-		_relay_to_all({"cmd": "sync_countries", "countries": _serialize_countries()})
-		_relay_to_all({"cmd": "sync_trades", "trades": _serialize_trades()})
+		_relay_to_all({
+			"cmd": "game_reset",
+			"countries": _serialize_countries(),
+			"trades": _serialize_trades(),
+			"t": game_time_left
+		})
 
 func get_total_score(c_id: String) -> int:
 	var c = countries[c_id]
@@ -1145,4 +1307,6 @@ func _check_victory():
 		if total_score > highest_score:
 			highest_score = total_score
 			winner = c_id
+	if play_mode == "host":
+		_relay_to_all({"cmd": "game_ended", "winner": winner})
 	game_ended.emit(winner)

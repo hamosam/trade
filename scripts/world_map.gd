@@ -183,24 +183,25 @@ func _process(delta):
 	for wr in w_remove:
 		wake_particles.erase(wr)
 
-	# Update active cargo ships
+	# Update active cargo ships (paused when game is paused)
 	var to_remove = []
-	for ship in active_ships:
-		ship["progress"] += delta * ship["speed"]
-		ship["wake_timer"] += delta
-		var cur_p = _get_ship_pos(ship)
-		if ship["wake_timer"] >= 0.14:
-			ship["wake_timer"] = 0.0
-			wake_particles.append({"pos": cur_p + Vector2(0, 6), "vel": Vector2(0, 0), "life": 0.9, "max": 0.9, "kind": "wake"})
-			wake_particles.append({"pos": cur_p + Vector2(4, -14), "vel": Vector2(-4, -14), "life": 0.8, "max": 0.8, "kind": "smoke"})
+	if GameManager.is_game_running:
+		for ship in active_ships:
+			ship["progress"] += delta * ship["speed"]
+			ship["wake_timer"] += delta
+			var cur_p = _get_ship_pos(ship)
+			if ship["wake_timer"] >= 0.14:
+				ship["wake_timer"] = 0.0
+				wake_particles.append({"pos": cur_p + Vector2(0, 6), "vel": Vector2(0, 0), "life": 0.9, "max": 0.9, "kind": "wake"})
+				wake_particles.append({"pos": cur_p + Vector2(4, -14), "vel": Vector2(-4, -14), "life": 0.8, "max": 0.8, "kind": "smoke"})
 
-		if ship["progress"] >= 1.0:
-			ship["progress"] = 1.0
-			to_remove.append(ship)
-			GameManager.complete_cargo_delivery(ship["from_id"], ship["to_id"], ship["trade"])
-			var to_c = GameManager.countries[ship["to_id"]]
-			_spawn_floating_text(ship["end_pos"], to_c["short"] + " 도착!", Color(1.0, 0.92, 0.3))
-			_trigger_island_emote(ship["to_id"], "♥")
+			if ship["progress"] >= 1.0:
+				ship["progress"] = 1.0
+				to_remove.append(ship)
+				GameManager.complete_cargo_delivery(ship["from_id"], ship["to_id"], ship["trade"])
+				var to_c = GameManager.countries[ship["to_id"]]
+				_spawn_floating_text(ship["end_pos"], to_c["short"] + " 도착!", Color(1.0, 0.92, 0.3))
+				_trigger_island_emote(ship["to_id"], "♥")
 
 	for r in to_remove:
 		active_ships.erase(r)

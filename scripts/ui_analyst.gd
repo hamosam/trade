@@ -19,6 +19,11 @@ func _ready():
 	send_order_btn.pressed.connect(_on_send_order_pressed)
 	ime_btn.pressed.connect(_toggle_ime_mode)
 	order_input.gui_input.connect(_on_input_gui_input)
+	order_input.text_changed.connect(func(new_text):
+		if korean_mode:
+			ime.reset()
+			ime.committed = new_text
+	)
 	order_input.focus_entered.connect(func():
 		if korean_mode:
 			DisplayServer.window_set_ime_active(false)

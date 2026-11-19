@@ -750,11 +750,6 @@ text = "스마트폰 조립 시작 (독점 권한)"
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="GatherBtn" type="Button" parent="MainViews/TechnicianView/Panel/VBox/ActionRow"]
-custom_minimum_size = Vector2(210, 36)
-layout_mode = 2
-text = "특산 자원 직접 생산 (+2개)"
-
 [node name="ConvertBox" type="HBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/ActionRow"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -1642,6 +1637,12 @@ theme_override_constants/separation = 6
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "교사용 · 방 코드 만들기 (클라우드 중계 서버)"
+
+[node name="ResumeHostBtn" type="Button" parent="LobbyOverlay/Panel/VBox/TeacherSection"]
+visible = false
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "교사용 · 이전 방 이어하기"
 
 [node name="ServerToggleBtn" type="Button" parent="LobbyOverlay/Panel/VBox/TeacherSection"]
 custom_minimum_size = Vector2(0, 26)

@@ -747,11 +747,6 @@ text = "스마트폰 조립 시작 (독점 권한)"
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="GatherBtn" type="Button" parent="MainViews/TechnicianView/Panel/VBox/ActionRow"]
-custom_minimum_size = Vector2(210, 36)
-layout_mode = 2
-text = "특산 자원 직접 생산 (+2개)"
-
 [node name="ConvertBox" type="HBoxContainer" parent="MainViews/TechnicianView/Panel/VBox/ActionRow"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -759,7 +754,7 @@ theme_override_constants/separation = 6
 
 [node name="Lbl" type="Label" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
 theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
-text = "비상 가공(4→1):"
+text = "비상 가공(4->1):"
 
 [node name="FromOpt" type="OptionButton" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
 layout_mode = 2
@@ -767,7 +762,7 @@ size_flags_horizontal = 3
 
 [node name="Arrow" type="Label" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
 theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
-text = "→"
+text = "->"
 
 [node name="ToOpt" type="OptionButton" parent="MainViews/TechnicianView/Panel/VBox/ActionRow/ConvertBox"]
 layout_mode = 2
@@ -1422,7 +1417,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(0.35, 0.18, 0.08, 1)
 theme_override_font_sizes/font_size = 20
-text = "→"
+text = "->"
 
 [node name="Phone" type="TextureRect" parent="TitleOverlay/Panel/VBox/IconShowcase"]
 custom_minimum_size = Vector2(44, 44)
@@ -1642,6 +1637,12 @@ theme_override_constants/separation = 6
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "교사용 · 방 코드 만들기 (클라우드 중계 서버)"
+
+[node name="ResumeHostBtn" type="Button" parent="LobbyOverlay/Panel/VBox/TeacherSection"]
+visible = false
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "교사용 · 이전 방 이어하기"
 
 [node name="ServerToggleBtn" type="Button" parent="LobbyOverlay/Panel/VBox/TeacherSection"]
 custom_minimum_size = Vector2(0, 26)

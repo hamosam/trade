@@ -16,14 +16,23 @@ extends Control
 
 var res_keys = ["none", "iron", "food", "energy", "semiconductor"]
 var res_names = ["(자원 없음)", "철광석", "식량", "에너지", "반도체"]
+var last_country_id: String = ""
 
 func _ready():
 	_setup_options()
+	_setup_tablet_spinbox(offer_qty_spin, "보낼 자원 수량 입력")
+	_setup_tablet_spinbox(offer_gold_spin, "보낼 골드(G) 입력")
+	_setup_tablet_spinbox(request_qty_spin, "받을 자원 수량 입력")
+	_setup_tablet_spinbox(request_gold_spin, "받을 골드(G) 입력")
 	send_proposal_btn.pressed.connect(_on_send_proposal_pressed)
 	GameManager.trade_proposed.connect(func(_id, _data): _refresh_inbox())
 	GameManager.trade_resolved.connect(func(_id, _status, _data): _refresh_inbox(); _refresh_history())
-	GameManager.country_data_changed.connect(func(_id): _refresh_inbox())
-	GameManager.role_changed.connect(func(_c, _r): _setup_options(); _refresh_inbox(); _refresh_team_order())
+	GameManager.role_changed.connect(func(c, _r):
+		if c != last_country_id:
+			_setup_options()
+			_refresh_inbox()
+			_refresh_team_order()
+	)
 	GameManager.team_order_received.connect(func(cid, _ord):
 		if cid == GameManager.current_player_country:
 			_refresh_team_order()
@@ -33,7 +42,17 @@ func _ready():
 	_refresh_history()
 	_refresh_team_order()
 
+func _setup_tablet_spinbox(spin: SpinBox, title_str: String):
+	var le = spin.get_line_edit()
+	if le:
+		le.gui_input.connect(func(ev):
+			if DisplayServer.is_touchscreen_available() and ((ev is InputEventScreenTouch and ev.pressed) or (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT)):
+				get_viewport().set_input_as_handled()
+				get_tree().current_scene.open_numpad_for_spinbox(spin, title_str)
+		)
+
 func _setup_options():
+	last_country_id = GameManager.current_player_country
 	target_country_btn.clear()
 	for c_id in GameManager.countries:
 		if c_id != GameManager.current_player_country:

@@ -84,12 +84,12 @@ func _trigger_news(idx: int):
 
 func _on_pause_pressed():
 	SoundManager.play_click()
-	GameManager.is_game_running = not GameManager.is_game_running
+	GameManager.set_game_running(not GameManager.is_game_running)
 	btn_pause.text = "게임 재개" if not GameManager.is_game_running else "일시 정지"
 
 func _on_add_time_pressed():
 	SoundManager.play_click()
-	GameManager.game_time_left += 180.0
+	GameManager.add_game_time(180.0)
 	_update_stats()
 
 func _on_ai_fill_pressed():

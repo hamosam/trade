@@ -13,12 +13,18 @@ extends Control
 
 var ime := HangulIME.new()
 var korean_mode: bool = true
+var chat_cooldown: float = 0.0
 
 func _ready():
 	_setup_targets()
 	ime_btn.pressed.connect(_toggle_ime_mode)
 	broadcast_send_btn.pressed.connect(_on_custom_send_pressed)
 	broadcast_input.gui_input.connect(_on_input_gui_input)
+	broadcast_input.text_changed.connect(func(new_text):
+		if korean_mode:
+			ime.reset()
+			ime.committed = new_text
+	)
 	broadcast_input.focus_entered.connect(func():
 		if korean_mode:
 			DisplayServer.window_set_ime_active(false)
@@ -34,6 +40,19 @@ func _ready():
 	GameManager.role_changed.connect(func(_c, _r): _setup_targets())
 	_update_current_news()
 	_update_ime_btn()
+
+func _process(delta):
+	if chat_cooldown > 0.0:
+		chat_cooldown -= delta
+		if chat_cooldown <= 0.0:
+			chat_cooldown = 0.0
+			broadcast_send_btn.disabled = false
+			broadcast_send_btn.text = "전송하기"
+			quick_btn1.disabled = false
+			quick_btn2.disabled = false
+			quick_btn3.disabled = false
+		else:
+			broadcast_send_btn.text = "대기 (%.1f초)" % chat_cooldown
 
 func _toggle_ime_mode():
 	SoundManager.play_click()
@@ -120,18 +139,23 @@ func _on_news_received(ev: Dictionary):
 	_update_current_news()
 	_prepend_feed("[color=#b8251e][b][속보] %s[/b] - %s[/color]" % [ev["title"], ev["description"]])
 
+func _escape_bbcode(s: String) -> String:
+	return s.replace("[", "[lb]")
+
 func _on_pr_received(country_id: String, msg: String):
 	var c_name = GameManager.countries[country_id]["name"]
-	_prepend_feed("[color=#38200f][b][전체 방송 · %s][/b] %s[/color]" % [c_name, msg])
+	_prepend_feed("[color=#38200f][b][전체 방송 · %s][/b] %s[/color]" % [c_name, _escape_bbcode(msg)])
 
 func _on_private_chat_received(from_id: String, to_id: String, msg: String):
 	var my_id = GameManager.current_player_country
 	if from_id == my_id or to_id == my_id or GameManager.play_mode == "host":
 		var from_name = GameManager.countries[from_id]["name"]
 		var to_name = GameManager.countries[to_id]["name"]
-		_prepend_feed("[color=#6b1d9e][b][1:1 비밀 대화 | %s → %s][/b] %s[/color]" % [from_name, to_name, msg])
+		_prepend_feed("[color=#6b1d9e][b][1:1 비밀 대화 | %s -> %s][/b] %s[/color]" % [from_name, to_name, _escape_bbcode(msg)])
 
 func _on_custom_send_pressed():
+	if chat_cooldown > 0.0:
+		return
 	ime.flush()
 	var txt = (ime.get_full_text() if korean_mode else broadcast_input.text).strip_edges()
 	if txt == "":
@@ -141,7 +165,14 @@ func _on_custom_send_pressed():
 	broadcast_input.text = ""
 
 func _send_to_selected_target(msg: String):
+	if chat_cooldown > 0.0:
+		return
 	SoundManager.play_click()
+	chat_cooldown = 3.0
+	broadcast_send_btn.disabled = true
+	quick_btn1.disabled = true
+	quick_btn2.disabled = true
+	quick_btn3.disabled = true
 	var target = target_opt.get_item_metadata(target_opt.selected)
 	var my_id = GameManager.current_player_country
 	if target == "all":
