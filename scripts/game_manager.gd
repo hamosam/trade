@@ -23,8 +23,9 @@ signal roster_updated
 const DEFAULT_RELAY_URL: String = "wss://broker.emqx.io:8084/mqtt"
 const FALLBACK_BROKERS: Array = [
 	"wss://broker.emqx.io:8084/mqtt",
-	"wss://broker.hivemq.com:8884/mqtt",
-	"wss://test.mosquitto.org:8081/mqtt"
+	"wss://mqtt.eclipseprojects.io:443/mqtt",
+	"wss://test.mosquitto.org:443",
+	"wss://broker.hivemq.com:8884/mqtt"
 ]
 const TOPIC_PREFIX: String = "hamo_trade_2026"
 const TEACHER_PASSWORD: String = "1234"
@@ -44,11 +45,13 @@ var client_joined: bool = false
 var broker_try_idx: int = 0
 var reconnect_timer: float = 0.0
 var connect_timeout: float = 0.0
+var register_retry_timer: float = 0.0
 var host_keepalive_timer: float = 0.0
-var student_hb_timer: float = 0.0
+var last_student_hb_wall: float = 0.0
 var roster_prune_timer: float = 0.0
 var host_has_started: bool = false
 var last_wall_sec: float = 0.0
+var student_uid: String = ""
 
 # Game loop variables
 var game_time_left: float = 900.0 # 15 minutes
@@ -201,6 +204,7 @@ var next_news_interval: float = 95.0
 
 func _ready():
 	mqtt.mqtt_connected.connect(_on_mqtt_connected)
+	mqtt.mqtt_subscribed.connect(_on_mqtt_subscribed)
 	mqtt.mqtt_disconnected.connect(_on_mqtt_disconnected)
 	mqtt.mqtt_message.connect(_on_mqtt_message)
 	if OS.has_feature("web"):
@@ -212,6 +216,9 @@ func _notification(what):
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
 		if play_mode in ["host", "client"] and is_game_started:
 			_send_heartbeat()
+			if play_mode == "client" and ws_connected and client_joined:
+				last_student_hb_wall = Time.get_unix_time_from_system()
+				_send_student_heartbeat_now()
 
 func _process(delta):
 	# Poll WebSocket relay if in host or client mode
@@ -276,6 +283,8 @@ func _exit_tree():
 	mqtt.close()
 
 func leave_current_session():
+	if play_mode == "client" and ws_connected and student_uid != "":
+		_relay_to_host({"cmd": "student_leave", "uid": student_uid})
 	mqtt.close()
 	ws_connected = false
 	ws_connecting = false
@@ -290,6 +299,8 @@ func leave_current_session():
 	network_status_changed.emit("준비 중", false)
 
 func start_solo_mode(country_id: String, role_name: String):
+	if play_mode == "client" and ws_connected and student_uid != "":
+		_relay_to_host({"cmd": "student_leave", "uid": student_uid})
 	mqtt.close()
 	play_mode = "solo_ai"
 	ai_fill_empty_countries = true
@@ -381,6 +392,37 @@ func _load_host_session_data():
 			if d.has("t"):
 				game_time_left = float(d["t"])
 
+func _get_or_create_student_uid() -> String:
+	if student_uid != "":
+		return student_uid
+	var saved = ""
+	if OS.has_feature("web"):
+		saved = str(JavaScriptBridge.eval("localStorage.getItem('hamo_student_uid') || ''"))
+	elif FileAccess.file_exists("user://student_uid.txt"):
+		var f = FileAccess.open("user://student_uid.txt", FileAccess.READ)
+		if f:
+			saved = f.get_as_text().strip_edges()
+	if saved == "":
+		saved = "stu_%d_%d" % [randi_range(100000, 999999), Time.get_ticks_msec() % 1000000]
+		if OS.has_feature("web"):
+			JavaScriptBridge.eval("localStorage.setItem('hamo_student_uid', '%s');" % saved)
+		else:
+			var f = FileAccess.open("user://student_uid.txt", FileAccess.WRITE)
+			if f:
+				f.store_string(saved)
+	student_uid = saved
+	return student_uid
+
+func _send_student_heartbeat_now():
+	if play_mode == "client" and ws_connected:
+		_relay_to_host({
+			"cmd": "student_heartbeat",
+			"uid": _get_or_create_student_uid(),
+			"name": student_name,
+			"country": current_player_country,
+			"role": student_assigned_role
+		})
+
 func join_classroom_by_code(relay_url: String, code: String, p_name: String, country_id: String, role_name: String) -> bool:
 	var clean_code = code.strip_edges()
 	if clean_code == "":
@@ -391,6 +433,8 @@ func join_classroom_by_code(relay_url: String, code: String, p_name: String, cou
 	play_mode = "client"
 	room_code = clean_code
 	my_peer_id = randi_range(100000, 999999)
+	_get_or_create_student_uid()
+	last_student_hb_wall = Time.get_unix_time_from_system()
 	student_name = p_name.strip_edges() if p_name.strip_edges() != "" else "학생"
 	current_player_country = country_id
 	student_assigned_role = role_name
@@ -417,8 +461,13 @@ func _poll_websocket(delta: float):
 	mqtt.poll(delta)
 
 	if ws_connecting or (play_mode == "client" and ws_connected and not client_joined):
+		if play_mode == "client" and ws_connected and not client_joined:
+			register_retry_timer += delta
+			if register_retry_timer >= 1.2:
+				register_retry_timer = 0.0
+				_send_register_student()
 		connect_timeout += delta
-		if connect_timeout >= 5.0:
+		if connect_timeout >= 8.0:
 			connect_timeout = 0.0
 			if play_mode == "client" and ws_connected and not client_joined:
 				mqtt.close()
@@ -426,13 +475,7 @@ func _poll_websocket(delta: float):
 				ws_connecting = false
 				network_status_changed.emit("방 코드 '%s'를 찾을 수 없습니다! 선생님이 방을 열었는지 확인하세요." % room_code, false)
 			elif ws_connecting:
-				mqtt.close()
-				broker_try_idx += 1
-				if ws_url == DEFAULT_RELAY_URL and broker_try_idx < FALLBACK_BROKERS.size():
-					var next_url = FALLBACK_BROKERS[broker_try_idx]
-					network_status_changed.emit("예비 중계 채널(%d)로 연결 시도 중..." % (broker_try_idx + 1), false)
-					mqtt.connect_broker(next_url)
-				else:
+				if not _try_next_fallback_broker():
 					ws_connecting = false
 					network_status_changed.emit("네트워크 응답 시간 초과! 인터넷/방화벽을 확인하세요.", false)
 			return
@@ -456,16 +499,16 @@ func _poll_websocket(delta: float):
 			roster_prune_timer = 0.0
 			_prune_inactive_students()
 	elif ws_connected and play_mode == "client" and client_joined:
-		student_hb_timer += delta
-		if student_hb_timer >= 8.0:
-			student_hb_timer = 0.0
-			_relay_to_host({"cmd": "student_heartbeat", "name": student_name, "country": current_player_country, "role": student_assigned_role})
+		var now_hb = Time.get_unix_time_from_system()
+		if now_hb - last_student_hb_wall >= 8.0:
+			last_student_hb_wall = now_hb
+			_send_student_heartbeat_now()
 
 func _prune_inactive_students():
 	var now = Time.get_unix_time_from_system()
 	var removed = false
 	for k in connected_players.keys():
-		if now - float(connected_players[k].get("last_seen", now)) > 28.0:
+		if now - float(connected_players[k].get("last_seen", now)) > 120.0:
 			connected_players.erase(k)
 			removed = true
 	if removed:
@@ -495,8 +538,31 @@ func _on_mqtt_connected():
 		role_changed.emit(current_player_country, current_player_role)
 		network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
 	elif play_mode == "client":
+		register_retry_timer = 0.0
 		mqtt.subscribe("%s/%s/to_clients" % [TOPIC_PREFIX, room_code])
-		_relay_to_host({"cmd": "register_student", "name": student_name, "country": current_player_country, "role": student_assigned_role})
+		last_student_hb_wall = Time.get_unix_time_from_system()
+
+func _on_mqtt_subscribed():
+	if play_mode == "client" and ws_connected and not client_joined:
+		register_retry_timer = 0.0
+		_send_register_student()
+
+func _send_register_student():
+	if play_mode == "client" and ws_connected:
+		_relay_to_host({"cmd": "register_student", "uid": _get_or_create_student_uid(), "name": student_name, "country": current_player_country, "role": student_assigned_role})
+
+func _try_next_fallback_broker() -> bool:
+	mqtt.close()
+	broker_try_idx += 1
+	if ws_url == DEFAULT_RELAY_URL and broker_try_idx < FALLBACK_BROKERS.size():
+		var next_url = FALLBACK_BROKERS[broker_try_idx]
+		ws_connecting = true
+		connect_timeout = 0.0
+		network_status_changed.emit("예비 중계 채널(%d)로 연결 시도 중..." % (broker_try_idx + 1), false)
+		if mqtt.connect_broker(next_url) == OK:
+			return true
+		ws_connecting = false
+	return false
 
 func _on_mqtt_disconnected():
 	if ws_connected:
@@ -504,8 +570,9 @@ func _on_mqtt_disconnected():
 		ws_connecting = false
 		network_status_changed.emit("연결 끊김 — 자동 재연결 시도 중...", false)
 	elif ws_connecting:
-		ws_connecting = false
-		network_status_changed.emit("네트워크에 연결할 수 없습니다.", false)
+		if not _try_next_fallback_broker():
+			ws_connecting = false
+			network_status_changed.emit("네트워크에 연결할 수 없습니다.", false)
 
 func _on_mqtt_message(_topic: String, msg_str: String):
 	var parsed = JSON.parse_string(msg_str)
@@ -541,7 +608,9 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 			"register_student":
 				var s_name = str(p.get("name", "학생"))
 				var s_country = str(p.get("country", "iron_kingdom"))
-				var s_uid = str(from_pid)
+				var s_uid = str(p.get("uid", ""))
+				if s_uid == "":
+					s_uid = str(from_pid)
 				connected_players[s_uid] = {
 					"name": s_name,
 					"country": s_country,
@@ -562,13 +631,32 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 			"student_heartbeat":
 				var s_name = str(p.get("name", "학생"))
 				var s_country = str(p.get("country", "iron_kingdom"))
-				var s_uid = str(from_pid)
+				var s_role = p.get("role", "diplomat")
+				var s_uid = str(p.get("uid", ""))
+				if s_uid == "":
+					s_uid = str(from_pid)
+				var is_new_or_changed = not connected_players.has(s_uid)
+				if not is_new_or_changed:
+					var prev = connected_players[s_uid]
+					if prev.get("name", "") != s_name or prev.get("country", "") != s_country or prev.get("role", "") != s_role:
+						is_new_or_changed = true
 				connected_players[s_uid] = {
 					"name": s_name,
 					"country": s_country,
-					"role": p.get("role", "diplomat"),
+					"role": s_role,
 					"last_seen": Time.get_unix_time_from_system()
 				}
+				if is_new_or_changed:
+					_relay_to_all({"cmd": "sync_roster", "roster": connected_players})
+					network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
+					roster_updated.emit()
+			"student_leave":
+				var s_uid = str(p.get("uid", ""))
+				if s_uid != "" and connected_players.has(s_uid):
+					connected_players.erase(s_uid)
+					_relay_to_all({"cmd": "sync_roster", "roster": connected_players})
+					network_status_changed.emit("방 코드: %s (접속 중: %d명)" % [room_code, connected_players.size()], true)
+					roster_updated.emit()
 			"req_assemble":
 				_do_assemble_smartphone(p.get("country_id", ""), bool(p.get("is_perfect", false)))
 			"req_convert_res":
@@ -616,6 +704,9 @@ func _handle_relay_payload(from_pid: int, p: Dictionary):
 					client_joined = true
 					role_changed.emit(current_player_country, current_player_role)
 					network_status_changed.emit("방 [%s] 연결 완료!" % room_code, true)
+				else:
+					last_student_hb_wall = Time.get_unix_time_from_system()
+					_send_student_heartbeat_now()
 				all_data_changed.emit()
 			"sync_timer":
 				game_time_left = float(p.get("t", game_time_left))

@@ -468,7 +468,21 @@ func _on_breaking_news(news: Dictionary):
 
 func _on_game_ended(winner_id: String):
 	var w = GameManager.countries[winner_id]
-	victory_text.text = "최우수 무역 국가: %s\n스마트폰: %d대 조립  |  보유 자산: %d G\n성공적인 글로벌 무역과 부품 협력을 달성했습니다!" % [w["name"], w["smartphones"], w["gold"]]
+	var w_total = GameManager.get_total_score(winner_id)
+	var ranking = []
+	for c_id in GameManager.countries:
+		ranking.append({"id": c_id, "total": GameManager.get_total_score(c_id), "data": GameManager.countries[c_id]})
+	ranking.sort_custom(func(a, b): return a["total"] > b["total"])
+
+	var rank_lines = []
+	for i in range(min(3, ranking.size())):
+		var r = ranking[i]
+		var cd = r["data"]
+		rank_lines.append("%d위 %s: %d점 (%d대 · 승점 %d · %dG)" % [i + 1, cd["name"], r["total"], cd["smartphones"], cd["score"], cd["gold"]])
+
+	victory_text.text = "최우수 무역 국가: %s (총점 %d점)\n스마트폰 %d대 · R&D/조립 승점 %d점 · 보유 골드 %dG\n\n[최종 순위 TOP 3]\n%s" % [
+		w["name"], w_total, w["smartphones"], w["score"], w["gold"], "\n".join(rank_lines)
+	]
 	victory_restart_btn.text = "닫기" if GameManager.play_mode == "client" else "새 게임 시작"
 	victory_modal.visible = true
 

@@ -24,20 +24,27 @@ func _ready():
 	_setup_tablet_spinbox(offer_gold_spin, "보낼 골드(G) 입력")
 	_setup_tablet_spinbox(request_qty_spin, "받을 자원 수량 입력")
 	_setup_tablet_spinbox(request_gold_spin, "받을 골드(G) 입력")
+	offer_res_btn.item_selected.connect(func(_idx): _refresh_qty_limits())
 	send_proposal_btn.pressed.connect(_on_send_proposal_pressed)
 	GameManager.trade_proposed.connect(func(_id, _data): _refresh_inbox())
 	GameManager.trade_resolved.connect(func(_id, _status, _data): _refresh_inbox(); _refresh_history())
+	GameManager.country_data_changed.connect(func(cid):
+		if cid == GameManager.current_player_country:
+			_refresh_qty_limits()
+	)
 	GameManager.role_changed.connect(func(c, _r):
 		if c != last_country_id:
 			_setup_options()
 			_refresh_inbox()
 			_refresh_team_order()
+		_refresh_qty_limits()
 	)
 	GameManager.team_order_received.connect(func(cid, _ord):
 		if cid == GameManager.current_player_country:
 			_refresh_team_order()
 	)
-	GameManager.all_data_changed.connect(func(): _refresh_inbox(); _refresh_history())
+	GameManager.all_data_changed.connect(func(): _refresh_inbox(); _refresh_history(); _refresh_qty_limits())
+	_refresh_qty_limits()
 	_refresh_inbox()
 	_refresh_history()
 	_refresh_team_order()
@@ -69,6 +76,20 @@ func _setup_options():
 		request_res_btn.set_item_metadata(i, res_keys[i])
 	offer_res_btn.select(1)
 	request_res_btn.select(4)
+
+func _refresh_qty_limits():
+	var c_id = GameManager.current_player_country
+	if not GameManager.countries.has(c_id):
+		return
+	var c = GameManager.countries[c_id]
+	if offer_res_btn.selected >= 0:
+		var offer_res = offer_res_btn.get_item_metadata(offer_res_btn.selected)
+		if offer_res == "none":
+			offer_qty_spin.max_value = 1.0
+		else:
+			offer_qty_spin.max_value = float(max(1, int(c.get(offer_res, 0))))
+	if offer_qty_spin.value > offer_qty_spin.max_value:
+		offer_qty_spin.value = offer_qty_spin.max_value
 
 func _on_send_proposal_pressed():
 	SoundManager.play_click()

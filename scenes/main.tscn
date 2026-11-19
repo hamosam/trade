@@ -212,7 +212,7 @@ text = "수량:"
 [node name="OfferQtySpin" type="SpinBox" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
 layout_mode = 2
 min_value = 1.0
-max_value = 50.0
+max_value = 9999.0
 value = 3.0
 
 [node name="GoldLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/OfferRow"]
@@ -242,7 +242,7 @@ text = "수량:"
 [node name="ReqQtySpin" type="SpinBox" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]
 layout_mode = 2
 min_value = 1.0
-max_value = 50.0
+max_value = 9999.0
 value = 3.0
 
 [node name="GoldLbl" type="Label" parent="MainViews/DiplomatView/Panel/VBox/TradeForm/RequestRow"]

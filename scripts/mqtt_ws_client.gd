@@ -2,6 +2,7 @@ class_name MqttWsClient
 extends RefCounted
 
 signal mqtt_connected
+signal mqtt_subscribed
 signal mqtt_disconnected
 signal mqtt_message(topic: String, payload: String)
 
@@ -146,6 +147,8 @@ func _process_rx_buffer():
 				mqtt_connected.emit()
 		elif ptype == 0x30: # PUBLISH
 			_handle_publish(header, payload_bytes)
+		elif ptype == 0x90: # SUBACK
+			mqtt_subscribed.emit()
 		elif ptype == 0xD0: # PINGRESP
 			pass
 

@@ -119,6 +119,20 @@ func _update_stats():
 			top_country = c["name"]
 
 	var student_count = GameManager.connected_players.size() if GameManager.play_mode == "host" else 1
-	var mode_desc = "방 코드 [%s] | 접속 학생: %d명" % [GameManager.room_code, student_count] if GameManager.play_mode == "host" else "혼자 체험 모드 (AI 경쟁국 가동 중)"
+	var mode_desc = ""
+	if GameManager.play_mode == "host":
+		var country_counts := {}
+		for c_id in GameManager.countries:
+			country_counts[c_id] = 0
+		for pid in GameManager.connected_players:
+			var cid = GameManager.connected_players[pid].get("country", "")
+			if country_counts.has(cid):
+				country_counts[cid] += 1
+		var parts: Array = []
+		for c_id in GameManager.countries:
+			parts.append("%s %d" % [GameManager.countries[c_id]["name"], country_counts[c_id]])
+		mode_desc = "방 코드 [%s] | 접속 학생: %d명 (%s)" % [GameManager.room_code, student_count, " · ".join(parts)]
+	else:
+		mode_desc = "혼자 체험 모드 (AI 경쟁국 가동 중)"
 
 	status_lbl.text = "학급 운영 현황 (%s)\n• 전체 완성된 스마트폰: %d대   |   선두 국가: %s (%d점)\n• 교사 안내: 학생들이 자원을 독점하지 않고 무역선으로 자원을 교환하도록 격려해 주세요." % [mode_desc, total_phones, top_country, max_score]
